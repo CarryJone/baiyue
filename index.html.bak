@@ -31,7 +31,7 @@
     <option value="玉山群峰">玉山群峰</option>
     <option value="郡大山">郡大山</option>
     <option value="西巒大山">西巒大山</option>
-    <option value="新康橫斷">新康橫斷</option>
+    <option value="新康橫斷">新康橫斷&戒茂斯嘉明湖</option>
   </select>
 
   <label for="start">起點：</label>
@@ -106,11 +106,20 @@ function calc(route){
   let path=[];const edges=route.edges;
   for(let i=0;i<seq.length-1;i++){const seg=bfs(seq[i],seq[i+1],edges);if(!seg){output.innerHTML=`<p class='warn'>${seq[i]} → ${seq[i+1]} 無路徑</p>`;return;}if(i)seg.shift();path=path.concat(seg);}  
   let cum=0,html='<ul>';
-  path.forEach((node,i)=>{if(i===path.length-1)return;const next=path[i+1];let e=edges.find(x=>x.from.trim()===node.trim() && x.to.trim()===next.trim());
-    const reversedEdge = !e;
-    if(reversedEdge) e = edges.find(x=>x.from.trim()===next.trim() && x.to.trim()===node.trim());
-    const reversed=!e;
-    if(reversed) e=edges.find(x=>x.from===next&&x.to===node);if(!e){html+=`<li class='warn'>缺少 ${node}↔${next}</li>`;return;}const up=e.from===node&&e.to===next;const mins=Math.round((up?e.up:e.down)*factor);cum+=mins;html+=`<li>${node} → ${next}：<strong>${mins} 分</strong> (${up?'去程':'回程'})<br>抵達 <em>${next}</em>：<span class='arrival'>${fmt(startMin+cum)}</span></li>`;});
+  path.forEach((node,i)=>{
+    if(i===path.length-1) return;
+    const next = path[i+1];
+    let e = edges.find(x => x.from.trim()===node.trim() && x.to.trim()===next.trim());
+    let dir = '去程';
+    if(!e){
+      e = edges.find(x => x.from.trim()===next.trim() && x.to.trim()===node.trim());
+      if(!e){ html += `<li class='warn'>缺少 ${node}↔${next}</li>`; return; }
+      dir = '回程';
+    }
+    const mins = Math.round((dir==='去程'? e.up : e.down) * factor);
+    cum += mins;
+    html += `<li>${node} → ${next}：<strong>${mins} 分</strong> (${dir})<br>抵達 <em>${next}</em>：<span class='arrival'>${fmt(startMin+cum)}</span></li>`;
+  });
   html+='</ul>';html+=`<p><strong>總行程：</strong>${cum} 分 ≈ ${(cum/60).toFixed(1)} 小時<br>抵達終點：<span class='arrival'>${fmt(startMin+cum)}</span></p>`;output.innerHTML=html;
 }
 
