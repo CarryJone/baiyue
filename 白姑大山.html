@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>白姑大山步程時間估算器</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.6;
+      padding: 1rem;
+      max-width: 900px;
+      margin: auto;
+    }
+    img {
+      width: 100%;
+      height: auto;
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .controls {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    label {
+      font-weight: bold;
+    }
+    select,
+    input[type="number"] {
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.4rem;
+    }
+    select {
+      min-width: 7rem;
+    }
+    button {
+      padding: 0.4rem 0.8rem;
+      cursor: pointer;
+      border: none;
+      border-radius: 0.5rem;
+      background: #4caf50;
+      color: #fff;
+      font-weight: 600;
+    }
+    #output {
+      margin-top: 1.25rem;
+      font-size: 1.05rem;
+      white-space: pre-wrap;
+    }
+    ul {
+      padding-left: 1.25rem;
+    }
+    li {
+      margin: 0.25rem 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- 1. 路線圖 -->
+  <img src="bai_gu_route.png" alt="白姑大山步程示意圖" />
+
+  <!-- 2. 操作面板 -->
+  <div class="controls">
+    <label for="start">起點：</label>
+    <select id="start"></select>
+
+    <label for="end">終點：</label>
+    <select id="end"></select>
+
+    <label for="factor">速度倍率 (0.1–2)：</label>
+    <input id="factor" type="number" min="0.1" max="2" step="0.1" value="1" />
+
+    <button onclick="calculate()">確定</button>
+  </div>
+
+  <!-- 3. 計算結果 -->
+  <div id="output"></div>
+
+  <script>
+    // 依照示意圖，各路段中文名稱與原始行走時間 (分鐘)
+    const segments = [
+      { from: "停車場",            to: "白姑大山登山口", time: 10 },
+      { from: "白姑大山登山口",    to: "水管路岔口",     time: 25 },
+      { from: "水管路岔口",        to: "三錐山",         time: 160 },
+      { from: "三錐山",            to: "司曼池營地",     time: 130 },
+      { from: "司曼池營地",        to: "白姑大山東南峰", time: 60 },
+      { from: "白姑大山東南峰",    to: "吉他營地",       time: 60 },
+      { from: "吉他營地",          to: "一線天岩壁",     time: 85 },
+      { from: "一線天岩壁",        to: "草青池",         time: 75 },
+      { from: "草青池",            to: "白姑大山主峰",   time: 55 }
+    ];
+
+    // 建立所有節點 (停車場~主峰)
+    const nodes = [segments[0].from, ...segments.map(s => s.to)];
+
+    const startSel = document.getElementById("start");
+    const endSel   = document.getElementById("end");
+
+    // 填入下拉選單
+    nodes.forEach(name => {
+      const opt1 = new Option(name, name);
+      const opt2 = new Option(name, name);
+      startSel.add(opt1);
+      endSel.add(opt2);
+    });
+
+    // 預設停車場 -> 主峰
+    startSel.value = nodes[0];
+    endSel.value   = nodes[nodes.length - 1];
+
+    // 主要計算函式
+    function calculate() {
+      const factor = parseFloat(document.getElementById("factor").value);
+      const start  = startSel.value;
+      const end    = endSel.value;
+
+      if (isNaN(factor) || factor < 0.1 || factor > 2) {
+        alert("請輸入 0.1 至 2 之間的速度倍率");
+        return;
+      }
+
+      const startIdx = nodes.indexOf(start);
+      const endIdx   = nodes.indexOf(end);
+
+      if (startIdx === -1 || endIdx === -1 || startIdx >= endIdx) {
+        alert("請確認起終點順序 (起點需位於終點之前)");
+        return;
+      }
+
+      let html = `<ul>`;
+      let total = 0;
+
+      for (let i = startIdx; i < endIdx; i++) {
+        const seg = segments[i];
+        const newTime = Math.round(seg.time * factor);
+        total += newTime;
+        html += `<li>${seg.from} → ${seg.to}：<strong>${newTime} 分</strong></li>`;
+      }
+
+      html += `</ul>`;
+      html += `<p><strong>累計時間：</strong>${total} 分 (約 ${(total/60).toFixed(1)} 小時)</p>`;
+
+      document.getElementById("output").innerHTML = html;
+    }
+
+    window.addEventListener("DOMContentLoaded", calculate);
+  </script>
+</body>
+</html>

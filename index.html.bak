@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>步程時間估算器｜百岳 JSON 版（多路線＋經途點＋抵達時間）</title>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;line-height:1.6;padding:1rem;max-width:960px;margin:auto}
+  img{width:100%;height:auto;border-radius:0.75rem;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+  h2{margin-top:.75rem}
+  .controls{margin-top:1rem;display:flex;flex-wrap:wrap;gap:.75rem;align-items:center}
+  label{font-weight:700}
+  select,input[type=number],input[type=time]{padding:.25rem .5rem;border-radius:.4rem}
+  select{min-width:7rem}
+  .waypoints{display:flex;flex-direction:column;max-height:200px;overflow:auto;border:1px solid #ccc;padding:.5rem;border-radius:.5rem;width:220px}
+  button{padding:.4rem .85rem;cursor:pointer;border:none;border-radius:.5rem;background:#4caf50;color:#fff;font-weight:600}
+  #output{margin-top:1.25rem;font-size:1.05rem;white-space:pre-wrap}
+  ul{padding-left:1.25rem}
+  li{margin:.3rem 0}
+  .warn{color:#d32f2f}
+  .arrival{color:#c2185b;font-weight:700}
+</style>
+</head>
+<body>
+<h2>步程時間估算器</h2>
+<img id="routeImg" src="bai_gu_route.png" alt="路線示意圖" />
+<div class="controls">
+  <label for="route">路線：</label>
+  <select id="route">
+    <option value="白姑大山">白姑大山</option>
+    <option value="玉山群峰">玉山群峰</option>
+    <option value="郡大山">郡大山</option>
+    <option value="西巒大山">西巒大山</option>
+    <option value="新康橫斷">新康橫斷</option>
+  </select>
+
+  <label for="start">起點：</label>
+  <select id="start"></select>
+
+  <label for="end">終點：</label>
+  <select id="end"></select>
+
+  <label for="factor">倍率(0.1–2)：</label>
+  <input id="factor" type="number" min="0.1" max="2" step="0.1" value="1" />
+
+  <label for="startTime">起始時間：</label>
+  <input id="startTime" type="time" value="06:00" />
+
+  <button id="runBtn">計算</button>
+</div>
+
+<p><strong>選擇想經過的節點（可多選，按住 Ctrl / ⌘）：</strong></p>
+<select id="waypoints" class="waypoints" multiple></select>
+
+<div id="output"></div>
+
+<script>
+/* 1. 路線 meta  — 每條路線對應 JSON + 圖片 */
+const ROUTE_META={
+  "白姑大山": {id:"bai_gu",  img:"bai_gu_route.png"},
+  "玉山群峰": {id:"yushan",  img:"yushan_route.png"},
+  "郡大山":   {id:"jun_da", img:"jun_da_route.png"},
+  "西巒大山":  {id:"xi_luan",img:"xi_luan_route.png"},
+  "新康橫斷":  {id:"xin_kang",img:"xin_kang_route.png"}   // routes/xin_kang.json + 圖
+};
+
+/* 2. JSON cache */
+const cache={};
+async function loadRoute(name){
+  if(cache[name]) return cache[name];
+  try{
+    const res=await fetch(`routes/${ROUTE_META[name].id}.json`);
+    if(!res.ok) throw new Error(res.statusText);
+    const json=await res.json();
+    cache[name]=json;return json;
+  }catch(e){alert(`${name} JSON 載入失敗`);return null;}
+}
+
+/* 3. DOM refs */
+const routeSel=document.getElementById('route');
+const startSel=document.getElementById('start');
+const endSel=document.getElementById('end');
+const wpSel=document.getElementById('waypoints');
+const factorInp=document.getElementById('factor');
+const startTimeInp=document.getElementById('startTime');
+const runBtn=document.getElementById('runBtn');
+const routeImg=document.getElementById('routeImg');
+const output=document.getElementById('output');
+
+/* 4. utils */
+function renderNodeSelects(nodes){
+  startSel.innerHTML=endSel.innerHTML=wpSel.innerHTML='';
+  nodes.forEach(n=>{startSel.add(new Option(n,n));endSel.add(new Option(n,n));wpSel.add(new Option(n,n));});
+  startSel.selectedIndex=0;endSel.selectedIndex=nodes.length-1;
+}
+function buildAdj(edges){const adj={};edges.forEach(({from,to})=>{(adj[from]=adj[from]||[]).push(to);(adj[to]=adj[to]||[]).push(from);});return adj;}
+function bfs(s,t,edges){const adj=buildAdj(edges);const q=[[s]];const seen=new Set([s]);while(q.length){const p=q.shift();const v=p[p.length-1];if(v===t)return p;(adj[v]||[]).forEach(n=>{if(!seen.has(n)){seen.add(n);q.push([...p,n]);}});}return null;}
+const pad=n=>n.toString().padStart(2,'0');const fmt=m=>`${pad(Math.floor(m/60)%24)}:${pad(m%60)}`;
+
+/* 5. main calc */
+function calc(route){
+  const factor=parseFloat(factorInp.value);if(isNaN(factor)||factor<0.1||factor>2){alert('倍率需 0.1–2');return;}
+  const [h,m]=startTimeInp.value.split(':').map(Number);if(isNaN(h))return alert('起始時間不合法');
+  const startMin=h*60+m;
+  const seq=[startSel.value,...Array.from(wpSel.selectedOptions).map(o=>o.value),endSel.value];
+  let path=[];const edges=route.edges;
+  for(let i=0;i<seq.length-1;i++){const seg=bfs(seq[i],seq[i+1],edges);if(!seg){output.innerHTML=`<p class='warn'>${seq[i]} → ${seq[i+1]} 無路徑</p>`;return;}if(i)seg.shift();path=path.concat(seg);}  
+  let cum=0,html='<ul>';
+  path.forEach((node,i)=>{if(i===path.length-1)return;const next=path[i+1];let e=edges.find(x=>x.from.trim()===node.trim() && x.to.trim()===next.trim());
+    const reversedEdge = !e;
+    if(reversedEdge) e = edges.find(x=>x.from.trim()===next.trim() && x.to.trim()===node.trim());
+    const reversed=!e;
+    if(reversed) e=edges.find(x=>x.from===next&&x.to===node);if(!e){html+=`<li class='warn'>缺少 ${node}↔${next}</li>`;return;}const up=e.from===node&&e.to===next;const mins=Math.round((up?e.up:e.down)*factor);cum+=mins;html+=`<li>${node} → ${next}：<strong>${mins} 分</strong> (${up?'去程':'回程'})<br>抵達 <em>${next}</em>：<span class='arrival'>${fmt(startMin+cum)}</span></li>`;});
+  html+='</ul>';html+=`<p><strong>總行程：</strong>${cum} 分 ≈ ${(cum/60).toFixed(1)} 小時<br>抵達終點：<span class='arrival'>${fmt(startMin+cum)}</span></p>`;output.innerHTML=html;
+}
+
+/* 6. init */
+async function init(){const name=routeSel.value;routeImg.src=ROUTE_META[name].img;const data=await loadRoute(name);if(!data)return;renderNodeSelects(data.nodes);calc(data);}  
+routeSel.addEventListener('change',init);
+runBtn.addEventListener('click',async()=>{const d=cache[routeSel.value]||await loadRoute(routeSel.value);if(d)calc(d);});
+
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
