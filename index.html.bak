@@ -40,6 +40,12 @@ li{margin:.3rem 0}
     <option value="新康橫斷">新康橫斷</option>
     <option value="大霸聖稜">大霸聖稜</option>
 	<option value="雪山西南稜">雪山西南稜</option>
+	<option value="北一段">北一段</option>
+	<option value="畢祿羊頭">畢祿羊頭</option>
+	<option value="閂山鈴鳴">閂山鈴鳴線</option>
+	<option value="合歡西北峰">合歡西北峰</option>
+	<option value="屏風山">屏風山</option>
+	<option value="奇萊群峰">奇萊群峰</option>
   </select>
 
   <label for="start">起點：</label>
@@ -88,7 +94,13 @@ const ROUTE_META={
   "西巒大山": {id:"xi_luan",img:"xi_luan_route.png"},
   "新康橫斷": {id:"xin_kang",img:"xin_kang_route.png"},
   "大霸聖稜": {id:"da_ba_sheng_ridge",img:"da_ba_sheng_route.png"},
-  "雪山西南稜": { id: "xueshan_south_ridge", img: "xueshan_south_ridge.png" }
+  "雪山西南稜": { id: "xueshan_south_ridge", img: "xueshan_south_ridge.png" },
+  "北一段": { id: "section_1_north", img: "section_1_north.png" },
+  "畢祿羊頭": { id: "pilushan_yangtou", img: "pilushan_yangtou_route.png" },
+  "閂山鈴鳴": { id: "fanshan_lingming", img: "fanshan_lingming_route.png" },
+  "合歡西北峰": { id: "hehuan_west_north", img: "hehuan_west_north_route.png" },
+  "屏風山": { id: "pingfengshan", img: "pingfengshan_route.png" },
+   "奇萊群峰": { id: "qilai_range", img: "qilai_range_route.png" }
 };
 
 /* === 2. cache === */
