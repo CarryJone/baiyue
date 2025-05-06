@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>步程時間估算器｜最短時間路徑</title>
+<title>步程時間估算器｜最短時間路徑｜使用上河文化資料</title>
 <style>
 body{font-family:Arial,Helvetica,sans-serif;line-height:1.6;padding:1rem;max-width:960px;margin:auto}
 img{width:100%;height:auto;border-radius:.75rem;box-shadow:0 4px 12px rgba(0,0,0,.1)}
@@ -37,7 +37,6 @@ li{margin:.3rem 0}
     <option value="玉山群峰">玉山群峰</option>
     <option value="郡大山">郡大山</option>
     <option value="西巒大山">西巒大山</option>
-    <option value="新康橫斷">新康橫斷</option>
     <option value="大霸聖稜">大霸聖稜</option>
 	<option value="雪山西南稜">雪山西南稜</option>
 	<option value="北一段">北一段</option>
@@ -46,6 +45,10 @@ li{margin:.3rem 0}
 	<option value="合歡西北峰">合歡西北峰</option>
 	<option value="屏風山">屏風山</option>
 	<option value="奇萊群峰">奇萊群峰</option>
+	<option value="奇萊東稜">奇萊東稜</option>
+	<option value="能高安東軍">能高安東軍</option>
+	<option value="干卓萬群峰">干卓萬群峰</option>
+	<option value="新康橫斷&戒茂斯嘉明湖">新康橫斷&戒茂斯嘉明湖</option>
   </select>
 
   <label for="start">起點：</label>
@@ -92,7 +95,6 @@ const ROUTE_META={
   "玉山群峰": {id:"yushan",img:"yushan_route.png"},
   "郡大山":   {id:"jun_da",img:"jun_da_route.png"},
   "西巒大山": {id:"xi_luan",img:"xi_luan_route.png"},
-  "新康橫斷": {id:"xin_kang",img:"xin_kang_route.png"},
   "大霸聖稜": {id:"da_ba_sheng_ridge",img:"da_ba_sheng_route.png"},
   "雪山西南稜": { id: "xueshan_south_ridge", img: "xueshan_south_ridge.png" },
   "北一段": { id: "section_1_north", img: "section_1_north.png" },
@@ -100,7 +102,12 @@ const ROUTE_META={
   "閂山鈴鳴": { id: "fanshan_lingming", img: "fanshan_lingming_route.png" },
   "合歡西北峰": { id: "hehuan_west_north", img: "hehuan_west_north_route.png" },
   "屏風山": { id: "pingfengshan", img: "pingfengshan_route.png" },
-   "奇萊群峰": { id: "qilai_range", img: "qilai_range_route.png" }
+  "奇萊群峰": { id: "qilai_range", img: "qilai_range_route.png" },
+  "奇萊東稜": { id: "qilai_east_ridge", img: "qilai_east_ridge_route.png" },
+  "能高安東軍": { id: "nenggao_andongjun", img: "nenggao_andongjun_route.png" },
+    "干卓萬群峰": { id: "kanzhuowan_range", img: "kanzhuowan_range_route.png" },
+  "新康橫斷&戒茂斯嘉明湖": {id:"xin_kang",img:"xin_kang_route.png"}
+
 };
 
 /* === 2. cache === */
