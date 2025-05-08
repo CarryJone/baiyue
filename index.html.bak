@@ -1,59 +1,49 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>步程時間估算器｜最短時間路徑｜使用上河文化資料</title>
-<style>
-body{font-family:Arial,Helvetica,sans-serif;line-height:1.6;padding:1rem;max-width:960px;margin:auto}
-img{width:100%;height:auto;border-radius:.75rem;box-shadow:0 4px 12px rgba(0,0,0,.1)}
-h2{margin-top:.75rem}
-.controls{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;margin-top:1rem}
-label{font-weight:700}
-select,input[type=time],input[type=number],input[type=text]{padding:.25rem .5rem;border-radius:.4rem}
-select{min-width:7rem}
-button{padding:.4rem .85rem;cursor:pointer;border:none;border-radius:.5rem;background:#4caf50;color:#fff;font-weight:600}
-#output{margin-top:1.25rem;font-size:1.05rem;white-space:pre-wrap}
-ul{padding-left:1.25rem}
-li{margin:.3rem 0}
-.warn{color:#d32f2f}
-.arrival{color:#c2185b;font-weight:700}
-/* 兩欄穿梭框 */
-.transfer{display:flex;gap:.75rem;margin:.75rem 0}
-.box{display:flex;flex-direction:column;gap:.25rem}
-.transfer select{width:220px;height:200px;padding:.25rem;border:1px solid #ccc;border-radius:.5rem}
-.btns{display:flex;flex-direction:column;gap:.5rem;align-items:center;justify-content:center}
-.btns button{padding:.25rem .6rem;font-size:1.1rem;border:1px solid #888;border-radius:.4rem;background:#eee;cursor:pointer;color:#222}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>步程時間估算器｜多天縱走</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;line-height:1.55;max-width:1050px;margin:auto;padding:1rem}
+    h2{margin:.6rem 0 1rem;font-size:1.7rem}
+    img{width:100%;height:auto;border-radius:.75rem;box-shadow:0 4px 10px rgba(0,0,0,.12)}
+    /* 控制列 */
+    .controls{display:flex;flex-wrap:wrap;gap:.8rem;align-items:center;margin-top:1rem}
+    label{font-weight:600}
+    select,input[type=time],input[type=number],input[type=text]{padding:.25rem .55rem;border-radius:.45rem;border:1px solid #ccc}
+    select{min-width:7rem}
+    input[type=number]{width:5rem}
+    button{padding:.4rem .95rem;border:none;border-radius:.5rem;background:#388e3c;color:#fff;font-weight:600;cursor:pointer}
+    
+    /* 兩欄穿梭框 */
+    .transfer{display:flex;gap:.8rem;margin:1rem 0}
+    .box{display:flex;flex-direction:column;gap:.3rem}
+    .transfer select{width:240px;height:220px;padding:.25rem;border:1px solid #bbb;border-radius:.5rem}
+    .btns{display:flex;flex-direction:column;gap:.65rem;align-items:center;justify-content:center}
+    .btns button{padding:.25rem .75rem;font-size:1.15rem;border:1px solid #888;border-radius:.4rem;background:#eee;color:#222;cursor:pointer}
+
+    /* 表格 */
+    table.dayTbl{border-collapse:collapse;width:100%;margin-top:.8rem;font-size:.95rem}
+    table.dayTbl th,table.dayTbl td{border:1px solid #ccc;padding:.35rem;text-align:center}
+    table.dayTbl th{background:#f9f9f9;font-weight:600}
+    table.dayTbl td:first-child{text-align:right}
+    .arrival{color:#b01257;font-weight:700}
+    .warn{color:#d32f2f;font-weight:600}
+    details{border:1px solid #ddd;border-radius:.6rem;margin-top:1rem;padding:.6rem}
+    details[open]{background:#fafafa}
+    summary{font-weight:600;cursor:pointer;outline:none}
+    summary::-webkit-details-marker{display:none}
+  </style>
 </head>
 <body>
-<h2>步程時間估算器</h2>
+<h2>步程時間估算器（多天縱走版）</h2>
 <img id="routeImg" src="bai_gu_route.png" alt="路線示意圖">
 
+<!-- === 控制列 === -->
 <div class="controls">
   <label for="route">路線：</label>
-  <select id="route">
-    <option value="白姑大山">白姑大山</option>
-    <option value="玉山群峰">玉山群峰</option>
-    <option value="郡大山">郡大山</option>
-    <option value="西巒大山">西巒大山</option>
-    <option value="大霸聖稜">大霸聖稜</option>
-	<option value="雪山西南稜">雪山西南稜</option>
-	<option value="北一段">北一段</option>
-	<option value="畢祿羊頭">畢祿羊頭</option>
-	<option value="閂山鈴鳴">閂山鈴鳴線</option>
-	<option value="合歡西北峰">合歡西北峰</option>
-	<option value="屏風山">屏風山</option>
-	<option value="奇萊群峰">奇萊群峰</option>
-	<option value="奇萊東稜">奇萊東稜</option>
-	<option value="能高安東軍">能高安東軍</option>
-	<option value="干卓萬群峰">干卓萬群峰</option>
-	<option value="丹大東郡橫斷">丹大東郡橫斷</option>
-	<option value="馬博拉斯橫斷縱走">馬博拉斯橫斷縱走</option>
-	<option value="南二段">南二段</option>
-	<option value="新康橫斷&戒茂斯嘉明湖">新康橫斷&戒茂斯嘉明湖</option>
-	<option value="南一段">南一段</option>
-  </select>
+  <select id="route"></select>
 
   <label for="start">起點：</label>
   <select id="start"></select>
@@ -61,18 +51,21 @@ li{margin:.3rem 0}
   <label for="end">終點：</label>
   <select id="end"></select>
 
-  <label for="factor">倍率(0.1–2)：</label>
+  <label for="factor">倍率：</label>
   <input id="factor" type="number" min="0.1" max="2" step="0.1" value="1">
 
-  <label for="startTime">起始時間：</label>
+  <label for="startTime">Day1 出發：</label>
   <input id="startTime" type="time" value="06:00">
+
+  <label for="nextStart">隔天出發：</label>
+  <input id="nextStart" type="time" value="06:00">
 
   <button id="runBtn">計算</button>
 </div>
 
 <p><strong>搜尋節點：</strong><input id="filter" type="text" placeholder="輸入關鍵字篩選"></p>
 
-<!-- 兩欄穿梭框 -->
+<!-- === 兩欄穿梭框 === -->
 <div class="transfer">
   <div class="box">
     <label>可選節點</label>
@@ -90,35 +83,18 @@ li{margin:.3rem 0}
   </div>
 </div>
 
+<!-- === 結果輸出 === -->
 <div id="output"></div>
 
 <script>
-/* === 1. 路線 meta === */
+/* ---------- 1. 路線 meta (示例) ---------- */
 const ROUTE_META={
-  "白姑大山": {id:"bai_gu",img:"bai_gu_route.png"},
-  "玉山群峰": {id:"yushan",img:"yushan_route.png"},
-  "郡大山":   {id:"jun_da",img:"jun_da_route.png"},
-  "西巒大山": {id:"xi_luan",img:"xi_luan_route.png"},
-  "大霸聖稜": {id:"da_ba_sheng_ridge",img:"da_ba_sheng_route.png"},
-  "雪山西南稜": { id: "xueshan_south_ridge", img: "xueshan_south_ridge.png" },
-  "北一段": { id: "section_1_north", img: "section_1_north.png" },
-  "畢祿羊頭": { id: "pilushan_yangtou", img: "pilushan_yangtou_route.png" },
-  "閂山鈴鳴": { id: "fanshan_lingming", img: "fanshan_lingming_route.png" },
-  "合歡西北峰": { id: "hehuan_west_north", img: "hehuan_west_north_route.png" },
-  "屏風山": { id: "pingfengshan", img: "pingfengshan_route.png" },
-  "奇萊群峰": { id: "qilai_range", img: "qilai_range_route.png" },
-  "奇萊東稜": { id: "qilai_east_ridge", img: "qilai_east_ridge_route.png" },
-  "能高安東軍": { id: "nenggao_andongjun", img: "nenggao_andongjun_route.png" },
-  "干卓萬群峰": { id: "kanzhuowan_range", img: "kanzhuowan_range_route.png" },
-  "丹大東郡橫斷": {id: "danda_dongjun",img: "danda_dongjun_route.png"},
-  "馬博拉斯橫斷縱走": { id: "mabolas_traverse", img: "mabolas_traverse_route.png" },
-  "南二段": { id: "nan_er_duan", img: "nan_er_duan_route.png" }, 
-  "新康橫斷&戒茂斯嘉明湖": {id:"xin_kang",img:"xin_kang_route.png"},
-  "南一段": { id: "nan_yi_duan", img: "nan_yi_duan_route.png" }  
-
+  "白姑大山":{id:"bai_gu",img:"bai_gu_route.png"},
+  "玉山群峰":{id:"yushan",img:"yushan_route.png"}
+  // ...其餘請補上
 };
 
-/* === 2. cache === */
+/* ---------- 2. 快取 ---------- */
 const cache={};
 async function loadRoute(name){
   if(cache[name]) return cache[name];
@@ -127,152 +103,135 @@ async function loadRoute(name){
   const json=await res.json();cache[name]=json;return json;
 }
 
-/* === 3. DOM refs === */
-const routeSel=document.getElementById('route');
-const startSel=document.getElementById('start');
-const endSel  =document.getElementById('end');
-const availSel=document.getElementById('avail');
-const chosenSel=document.getElementById('chosen');
-const addBtn=document.getElementById('add');
-const rmBtn=document.getElementById('remove');
-const factorInp=document.getElementById('factor');
-const startTimeInp=document.getElementById('startTime');
-const runBtn=document.getElementById('runBtn');
-const routeImg=document.getElementById('routeImg');
-const output=document.getElementById('output');
-const filterInp=document.getElementById('filter');
+/* ---------- 3. DOM ---------- */
+const $={
+  routeSel:$('#route'),startSel:$('#start'),endSel:$('#end'),availSel:$('#avail'),chosenSel:$('#chosen'),
+  addBtn:$('#add'),rmBtn:$('#remove'),factorInp:$('#factor'),startTimeInp:$('#startTime'),nextStartInp:$('#nextStart'),
+  runBtn:$('#runBtn'),routeImg:$('#routeImg'),output:$('#output'),filterInp:$('#filter')
+};
+function $(sel){return document.querySelector(sel);} // alias
 
-/* === 4. 分群渲染 & 搜尋 === */
+/* ---------- 4. 休息 & 過夜 ---------- */
+const REST_OPTIONS=[0,5,10,15,20,30,45,60];
+let rests=[], overnights=[]; // 與 legs 對應
+
+function restSelect(idx,val){return `<select data-idx="${idx}" class="restSel">${REST_OPTIONS.map(v=>`<option value="${v}"${v===val?' selected':''}>${v}</option>`).join('')}</select>`;}
+function overnightChk(idx,val){return `<input type="checkbox" class="overnight" data-idx="${idx}"${val?' checked':''}>`}
+
+/* ---------- 5. 節點搜尋 / 兩欄搬移 ---------- */
+$.filterInp.addEventListener('input',()=>{
+  const kw=$.filterInp.value.trim().toLowerCase();
+  Array.from($.availSel.options).forEach(o=>o.hidden=kw && !o.text.toLowerCase().includes(kw));
+});
+$.addBtn.onclick=()=>{Array.from($.availSel.selectedOptions).forEach(o=>{const n=new Option(o.value,o.value);n.dataset.group=o.dataset.group;$.chosenSel.add(n);o.remove();});};
+$.rmBtn.onclick=()=>{
+  const map=JSON.parse($.availSel.dataset.map||'{}');
+  Array.from($.chosenSel.selectedOptions).forEach(o=>{
+    const g=o.dataset.group||map[o.value]||'其他';
+    let og=[...$.availSel.children].find(el=>el.label===g);
+    if(!og){og=document.createElement('optgroup');og.label=g;$.availSel.add(og);} const n=new Option(o.value,o.value);n.dataset.group=g;og.appendChild(n);o.remove();
+  });
+};
+
+/* ---------- 6. 節點選單渲染 ---------- */
 function renderNodeSelects(nodes){
-  startSel.innerHTML=endSel.innerHTML=availSel.innerHTML=chosenSel.innerHTML='';
-  const grouped={}, groupMap={};
+  const {startSel,endSel,availSel}= $;
+  startSel.innerHTML=endSel.innerHTML=availSel.innerHTML='';
+  const grouped={},gmap={};
   nodes.forEach(n=>{
-    const name=typeof n==='string'?n:n.name;
-    const group=typeof n==='string'?'其他':(n.group||'其他');
-    groupMap[name]=group;
-    (grouped[group]=grouped[group]||[]).push(name);
+    const name=typeof n==='string'?n:n.name;const grp=typeof n==='string'?'其他':(n.group||'其他');
+    gmap[name]=grp;(grouped[grp]=grouped[grp]||[]).push(name);
   });
   Object.entries(grouped).forEach(([g,list])=>{
-    const ogS=document.createElement('optgroup'),ogE=ogS.cloneNode(),ogA=ogS.cloneNode();
-    ogS.label=ogE.label=ogA.label=g;
-    list.forEach(n=>{
-      ogS.appendChild(new Option(n,n));
-      ogE.appendChild(new Option(n,n));
-      const o=new Option(n,n);o.dataset.group=g;ogA.appendChild(o);
-    });
-    startSel.add(ogS);endSel.add(ogE);availSel.add(ogA);
+    const og1=document.createElement('optgroup'),og2=og1.cloneNode(),og3=og1.cloneNode();
+    og1.label=og2.label=og3.label=g;
+    list.forEach(n=>{og1.appendChild(new Option(n,n));og2.appendChild(new Option(n,n));const o=new Option(n,n);o.dataset.group=g;og3.appendChild(o);});
+    startSel.add(og1);endSel.add(og2);availSel.add(og3);
   });
-  availSel.dataset.map=JSON.stringify(groupMap);
+  availSel.dataset.map=JSON.stringify(gmap);
   startSel.selectedIndex=0;endSel.selectedIndex=endSel.length-1;
-  applyFilter();
-}
-function applyFilter(){
-  const kw=filterInp.value.trim().toLowerCase();
-  Array.from(availSel.options).forEach(o=>{
-    o.hidden=kw && !o.text.toLowerCase().includes(kw);
-  });
-}
-filterInp.addEventListener('input',applyFilter);
-
-/* 兩欄搬移 */
-addBtn.onclick=()=>{
-  Array.from(availSel.selectedOptions).forEach(opt=>{
-    const neo=new Option(opt.value,opt.value);neo.dataset.group=opt.dataset.group;
-    chosenSel.add(neo);opt.remove();
-  });
-};
-rmBtn.onclick=()=>{
-  const map=JSON.parse(availSel.dataset.map||'{}');
-  Array.from(chosenSel.selectedOptions).forEach(opt=>{
-    const g=opt.dataset.group||map[opt.value]||'其他';
-    let og=[...availSel.children].find(el=>el.label===g);
-    if(!og){og=document.createElement('optgroup');og.label=g;availSel.add(og);}
-    const neo=new Option(opt.value,opt.value);neo.dataset.group=g;
-    og.appendChild(neo);opt.remove();
-  });
-  applyFilter();
-};
-
-/* === 5. Dijkstra weighted shortest === */
-function buildAdj(edges,factor){
-  const adj={};
-  edges.forEach(e=>{
-    const up=Math.round(e.up*factor), down=Math.round(e.down*factor);
-    (adj[e.from]=adj[e.from]||[]).push({to:e.to,cost:up});
-    (adj[e.to]  =adj[e.to]  ||[]).push({to:e.from,cost:down});
-  });
-  return adj;
-}
-function dijkstra(s,g,edges,factor){
-  const adj=buildAdj(edges,factor),dist={},prev={},pq=[[0,s]];
-  dist[s]=0;
-  while(pq.length){
-    pq.sort((a,b)=>a[0]-b[0]);
-    const [d,v]=pq.shift();
-    if(v===g)break;
-    (adj[v]||[]).forEach(({to,cost})=>{
-      const nd=d+cost;
-      if(nd<(dist[to]??Infinity)){dist[to]=nd;prev[to]=v;pq.push([nd,to]);}
-    });
-  }
-  if(!(g in prev))return null;
-  const path=[];
-  for(let v=g;v!==undefined;v=prev[v])path.push(v);
-  return path.reverse();
 }
 
-/* === 6. calc === */
+/* ---------- 7. 圖演算法 ---------- */
+function buildAdj(edges,f){const adj={};edges.forEach(e=>{const up=Math.round(e.up*f),dn=Math.round(e.down*f);(adj[e.from]=adj[e.from]||[]).push({to:e.to,cost:up});(adj[e.to]=adj[e.to]||[]).push({to:e.from,cost:dn});});return adj;}
+function dijkstra(s,g,edges,f){const adj=buildAdj(edges,f),dist={},prev={},pq=[[0,s]];dist[s]=0;while(pq.length){pq.sort((a,b)=>a[0]-b[0]);const [d,v]=pq.shift();if(v===g)break;(adj[v]||[]).forEach(({to,cost})=>{const nd=d+cost;if(nd<(dist[to]??Infinity)){dist[to]=nd;prev[to]=v;pq.push([nd,to]);}});}if(!(g in prev))return null;const path=[];for(let v=g;v!=null;v=prev[v])path.push(v);return path.reverse();}
+
+/* ---------- 8. 工具 ---------- */
 const pad=n=>String(n).padStart(2,'0');
-const fmt=m=>`${pad(Math.floor(m/60)%24)}:${pad(m%60)}`;
+function fmtAbs(mins){const d=Math.floor(mins/1440)+1;const t=mins%1440;return `Day${d} ${pad(Math.floor(t/60))}:${pad(t%60)}`;}
 
+/* ---------- 9. 主計算 ---------- */
 function calc(data){
-  const factor=parseFloat(factorInp.value);
-  if(isNaN(factor)||factor<0.1||factor>2){alert('倍率需 0.1–2');return;}
-  const [h,m]=startTimeInp.value.split(':').map(Number);
-  if(isNaN(h)||isNaN(m)){alert('起始時間不合法');return;}
-  const startMin=h*60+m;
+  const factor=parseFloat($.factorInp.value);if(isNaN(factor)||factor<0.1||factor>2){alert('倍率錯誤');return;}
+  const [sh,sm]=$.startTimeInp.value.split(':').map(Number);
+  const [nh,nm]=$.nextStartInp.value.split(':').map(Number);
+  if([sh,sm,nh,nm].some(isNaN)){alert('時間格式錯誤');return;}
+  let currentAbs=sh*60+sm; // 絕對分鐘 (Day1起點=0)
 
-  const seq=[startSel.value,
-             ...Array.from(chosenSel.options).map(o=>o.value),
-             endSel.value];
+  const seq=[$.startSel.value,...Array.from($.chosenSel.options).map(o=>o.value),$.endSel.value];
+  let full=[];
+  for(let i=0;i<seq.length-1;i++){const p=dijkstra(seq[i],seq[i+1],data.edges,factor);if(!p){$.output.innerHTML=`<p class='warn'>${seq[i]} → ${seq[i+1]} 無路徑</p>`;return;}if(i) p.shift();full=full.concat(p);} // 全節點
 
-  let full=[],cum=0,html='<ul>';
-  for(let i=0;i<seq.length-1;i++){
-    const p=dijkstra(seq[i],seq[i+1],data.edges,factor);
-    if(!p){output.innerHTML=`<p class='warn'>${seq[i]} → ${seq[i+1]} 無路徑</p>`;return;}
-    if(i) p.shift();
-    full=full.concat(p);
-  }
+  if(rests.length!==full.length-1) rests=Array(full.length-1).fill(0);
+  if(overnights.length!==full.length-1) overnights=Array(full.length-1).fill(false);
+
+  const days=[];let dayIdx=0;let dayLegs=[];let dayWalk=0,dayRest=0;
 
   for(let i=0;i<full.length-1;i++){
-    const a=full[i],b=full[i+1];
-    const edge=data.edges.find(x=>(x.from===a&&x.to===b)||(x.from===b&&x.to===a));
-    if(!edge){html+=`<li class='warn'>缺少 ${a}↔${b}</li>`;continue;}
-    const dir=(edge.from===a&&edge.to===b)?'去程':'回程';
-    const mins=Math.round((dir==='去程'?edge.up:edge.down)*factor);
-    cum+=mins;
-    html+=`<li>${a} → ${b}：<strong>${mins} 分</strong> (${dir})<br>`+
-          `抵達 <em>${b}</em>：<span class='arrival'>${fmt(startMin+cum)}</span></li>`;
+    const a=full[i],b=full[i+1];const e=data.edges.find(x=>(x.from===a&&x.to===b)||(x.from===b&&x.to===a));
+    if(!e){dayLegs.push({err:true,from:a,to:b});continue;}
+    const dir=(e.from===a&&e.to===b)?'去程':'回程';
+    const walk=Math.round((dir==='去程'?e.up:e.down)*factor);
+    currentAbs+=walk;
+    const arrivalAbs=currentAbs;
+
+    dayLegs.push({from:a,to:b,walk,arrival:arrivalAbs,rest:rests[i],overnight:overnights[i],err:false,idx:i});
+    dayWalk+=walk;
+    dayRest+=rests[i];
+    currentAbs+=rests[i];
+
+    if(overnights[i]||i===full.length-2){
+      days.push({walk:dayWalk,rest:dayRest,legs:dayLegs});
+      // reset for next day
+      dayIdx++;dayLegs=[];dayWalk=0;dayRest=0;
+      currentAbs=Math.floor(currentAbs/1440)*1440 + nh*60+nm; //跳至隔天指定時間
+    }
   }
-  html+='</ul>';
-  html+=`<p><strong>總行程：</strong>${cum} 分 ≈ ${(cum/60).toFixed(1)} 小時<br>`+
-        `抵達終點：<span class='arrival'>${fmt(startMin+cum)}</span></p>`;
-  output.innerHTML=html;
+
+  // ====== 輸出 ======
+  let html='';
+  days.forEach((d,di)=>{
+    html+=`<details${di===0?' open':''}><summary>Day ${di+1} — 行走 ${d.walk} 分 ・ 休息 ${d.rest} 分</summary>`;
+    html+=`<table class='dayTbl'><thead><tr><th>#</th><th>區段</th><th>行走</th><th>抵達</th><th>休息</th><th>過夜</th></tr></thead><tbody>`;
+    d.legs.forEach((l,i)=>{
+      if(l.err){html+=`<tr><td colspan='6' class='warn'>缺少 ${l.from} ↔ ${l.to} 資料</td></tr>`;return;}
+      html+=`<tr><td>${i+1}</td><td>${l.from} → ${l.to}</td><td>${l.walk}</td><td><span class='arrival'>${fmtAbs(l.arrival)}</span></td><td>${restSelect(l.idx,l.rest)}</td><td>${overnightChk(l.idx,l.overnight)}</td></tr>`;
+    });
+    html+='</tbody></table></details>';
+  });
+
+  $.output.innerHTML=html;
 }
 
-/* === 7. init === */
-async function init(){
-  const name=routeSel.value;
-  routeImg.src=ROUTE_META[name].img;
-  const data=await loadRoute(name);
-  if(data){renderNodeSelects(data.nodes);calc(data);}
-}
-routeSel.addEventListener('change',init);
-runBtn.addEventListener('click',async()=>{
-  const d=cache[routeSel.value]||await loadRoute(routeSel.value);
-  if(d) calc(d);
+/* ---------- 10. 事件監聽 ---------- */
+$.output.addEventListener('change',e=>{
+  const tgt=e.target;
+  if(tgt.classList.contains('restSel')){
+    const idx=parseInt(tgt.dataset.idx,10);rests[idx]=parseInt(tgt.value,10)||0;recalc();
+  }else if(tgt.classList.contains('overnight')){
+    const idx=parseInt(tgt.dataset.idx,10);overnights[idx]=tgt.checked;recalc();
+  }
 });
-document.addEventListener('DOMContentLoaded',init);
+function recalc(){const d=cache[$.routeSel.value];if(d) calc(d);}
+
+/* ---------- 11. 初始化 ---------- */
+function populateRoutes(){Object.keys(ROUTE_META).forEach(n=>$.routeSel.add(new Option(n,n)));}
+async function changeRoute(){const name=$.routeSel.value;$.routeImg.src=ROUTE_META[name].img;rests=[];overnights=[];const d=await loadRoute(name);if(d){renderNodeSelects(d.nodes);calc(d);}}
+
+$.routeSel.addEventListener('change',changeRoute);
+$.runBtn.addEventListener('click',()=>recalc());
+
+document.addEventListener('DOMContentLoaded',async()=>{populateRoutes();$.routeSel.selectedIndex=0;await changeRoute();});
 </script>
 </body>
 </html>
