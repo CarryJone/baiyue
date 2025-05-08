@@ -10,7 +10,7 @@ h2{margin:.6rem 0 1rem;font-size:1.7rem}
 img{width:100%;height:auto;border-radius:.75rem;box-shadow:0 4px 10px rgba(0,0,0,.12)}
 .controls{display:flex;flex-wrap:wrap;gap:.8rem;align-items:center;margin-top:1rem}
 label{font-weight:600}
-select,input[type=time],input[type=number],input[type=text]{padding:.25rem .55rem;border-radius:.45rem;border:1px solid #ccc}
+select,input[type=time],input[type=number]{padding:.25rem .55rem;border-radius:.45rem;border:1px solid #ccc}
 select{min-width:7rem}
 input[type=number]{width:5rem}
 button{padding:.4rem .95rem;border:none;border-radius:.5rem;background:#388e3c;color:#fff;font-weight:600;cursor:pointer}
@@ -24,12 +24,13 @@ table.dayTbl th,table.dayTbl td{border:1px solid #ccc;padding:.35rem;text-align:
 table.dayTbl th{background:#f9f9f9;font-weight:600}
 table.dayTbl td:first-child{text-align:right}
 .arrival{color:#b01257;font-weight:700}
-.warn{color:#d32f2f;font-weight:600}
 .nightStop{background:#fff9e6}
 details{border:1px solid #ddd;border-radius:.6rem;margin-top:1rem;padding:.6rem}
 details[open]{background:#fafafa}
 summary{font-weight:600;cursor:pointer;outline:none}
 summary::-webkit-details-marker{display:none}
+/* 恢復 Day 出發時間欄位寬度 */
+summary input[type=time]{font-size:inherit;width:auto;margin:0 .4rem}
 </style>
 </head>
 <body>
@@ -43,6 +44,7 @@ summary::-webkit-details-marker{display:none}
   <label for="factor">倍率：</label><input id="factor" type="number" min="0.1" max="2" step="0.1" value="1">
   <label for="startTime">Day1 出發：</label><input id="startTime" type="time" value="06:00">
   <button id="runBtn">計算</button>
+  <button id="exportTxt">匯出 TXT</button>
 </div>
 
 <p><strong>搜尋節點：</strong><input id="filter" type="text" placeholder="輸入關鍵字篩選"></p>
@@ -54,68 +56,43 @@ summary::-webkit-details-marker{display:none}
 </div>
 
 <div id="output"></div>
+
 <script>
 (()=>{
-/* ---------- DOM ---------- */
+// ---------- DOM ----------
 const $=q=>document.querySelector(q);
-const dom={ routeSel:$('#route'),startSel:$('#start'),endSel:$('#end'),
-  availSel:$('#avail'),chosenSel:$('#chosen'),
-  addBtn:$('#add'),rmBtn:$('#remove'),
-  factorInp:$('#factor'),startTime:$('#startTime'),
-  runBtn:$('#runBtn'),routeImg:$('#routeImg'),
-  output:$('#output'),filterInp:$('#filter') };
+const dom={routeSel:$('#route'),startSel:$('#start'),endSel:$('#end'),availSel:$('#avail'),chosenSel:$('#chosen'),
+  addBtn:$('#add'),rmBtn:$('#remove'),factorInp:$('#factor'),startTime:$('#startTime'),
+  runBtn:$('#runBtn'),exportBtn:$('#exportTxt'),routeImg:$('#routeImg'),output:$('#output'),filterInp:$('#filter')};
 
-/* ---------- 路線 meta (可自行擴充) ---------- */
+// ---------- meta ----------
 const ROUTE_META={
-   "白姑大山": {id:"bai_gu",img:"bai_gu_route.png"},
-  "玉山群峰": {id:"yushan",img:"yushan_route.png"},
-  "郡大山":   {id:"jun_da",img:"jun_da_route.png"},
-  "西巒大山": {id:"xi_luan",img:"xi_luan_route.png"},
-  "大霸聖稜": {id:"da_ba_sheng_ridge",img:"da_ba_sheng_route.png"},
-  "雪山西南稜": { id: "xueshan_south_ridge", img: "xueshan_south_ridge.png" },
-  "北一段": { id: "section_1_north", img: "section_1_north.png" },
-  "畢祿羊頭": { id: "pilushan_yangtou", img: "pilushan_yangtou_route.png" },
-  "閂山鈴鳴": { id: "fanshan_lingming", img: "fanshan_lingming_route.png" },
-  "合歡西北峰": { id: "hehuan_west_north", img: "hehuan_west_north_route.png" },
-  "屏風山": { id: "pingfengshan", img: "pingfengshan_route.png" },
-  "奇萊群峰": { id: "qilai_range", img: "qilai_range_route.png" },
-  "奇萊東稜": { id: "qilai_east_ridge", img: "qilai_east_ridge_route.png" },
-  "能高安東軍": { id: "nenggao_andongjun", img: "nenggao_andongjun_route.png" },
-  "干卓萬群峰": { id: "kanzhuowan_range", img: "kanzhuowan_range_route.png" },
-  "丹大東郡橫斷": {id: "danda_dongjun",img: "danda_dongjun_route.png"},
-  "馬博拉斯橫斷縱走": { id: "mabolas_traverse", img: "mabolas_traverse_route.png" },
-  "南二段": { id: "nan_er_duan", img: "nan_er_duan_route.png" }, 
-  "新康橫斷&戒茂斯嘉明湖": {id:"xin_kang",img:"xin_kang_route.png"},
-  "南一段": { id: "nan_yi_duan", img: "nan_yi_duan_route.png" },
-  "北大武山": { id: "bei_da_wu_shan", img: "bei_da_wu_shan_route.png" }
+  '白姑大山':{id:'bai_gu',img:'bai_gu_route.png'},
+  '玉山群峰':{id:'yushan',img:'yushan_route.png'}
 };
 
-/* ---------- 載入 JSON 快取 ---------- */
+// ---------- cache ----------
 const cache={};
 async function loadRoute(name){
   if(cache[name]) return cache[name];
-  const meta=ROUTE_META[name];
-  const res=await fetch(`routes/${meta.id}.json`);
+  const res=await fetch(`routes/${ROUTE_META[name].id}.json`);
   if(!res.ok){alert(`${name} 路線檔缺失`);return null;}
   return cache[name]=await res.json();
 }
 
-/* ---------- 初始化路線下拉 ---------- */
+// ---------- init route select ----------
 Object.keys(ROUTE_META).forEach(n=>dom.routeSel.add(new Option(n,n)));
 dom.routeSel.addEventListener('change',async()=>{
   dom.routeImg.src=ROUTE_META[dom.routeSel.value].img;
   const d=await loadRoute(dom.routeSel.value); if(d) renderNodeSelects(d.nodes);
 });
 
-/* ---------- 節點渲染 ---------- */
+// ---------- render nodes ----------
 function renderNodeSelects(nodes){
   dom.startSel.innerHTML=dom.endSel.innerHTML=dom.availSel.innerHTML='';
   const groups={},map={};
-  nodes.forEach(n=>{
-    const name=typeof n==='string'?n:n.name;
-    const g=typeof n==='string'?'其他':(n.group||'其他');
-    map[name]=g;(groups[g]=groups[g]||[]).push(name);
-  });
+  nodes.forEach(n=>{const name=typeof n==='string'?n:n.name;const g=typeof n==='string'?'其他':(n.group||'其他');
+    map[name]=g;(groups[g]=groups[g]||[]).push(name);});
   Object.entries(groups).forEach(([g,list])=>{
     const og1=document.createElement('optgroup'),og2=og1.cloneNode(),og3=og1.cloneNode();
     og1.label=og2.label=og3.label=g;
@@ -130,7 +107,7 @@ function renderNodeSelects(nodes){
   dom.startSel.selectedIndex=0;dom.endSel.selectedIndex=dom.endSel.length-1;
 }
 
-/* ---------- 搜尋 & 兩欄搬移 ---------- */
+// ---------- search & transfer ----------
 dom.filterInp.oninput=()=>{const kw=dom.filterInp.value.trim().toLowerCase();
   Array.from(dom.availSel.options).forEach(o=>o.hidden=kw&&!o.text.toLowerCase().includes(kw));};
 dom.addBtn.onclick=()=>{Array.from(dom.availSel.selectedOptions).forEach(o=>{
@@ -142,12 +119,11 @@ dom.rmBtn.onclick=()=>{const map=JSON.parse(dom.availSel.dataset.map||'{}');
     const g=o.dataset.group||map[o.value]||'其他';
     let og=[...dom.availSel.children].find(e=>e.label===g);
     if(!og){og=document.createElement('optgroup');og.label=g;dom.availSel.add(og);}
-    const neo=new Option(o.value,o.value);neo.dataset.group=g;
-    og.appendChild(neo);o.remove();
+    const neo=new Option(o.value,o.value);neo.dataset.group=g;og.appendChild(neo);o.remove();
   });
 };
 
-/* ---------- Dijkstra ---------- */
+// ---------- Dijkstra ----------
 function adj(edges,f){const a={};edges.forEach(e=>{
   const u=Math.round(e.up*f),d=Math.round(e.down*f);
   (a[e.from]=a[e.from]||[]).push({to:e.to,cost:u});
@@ -167,19 +143,18 @@ function path(s,g,edges,f){
   const P=[];for(let v=g;v!=null;v=pre[v])P.push(v);return P.reverse();
 }
 
-/* ---------- 工具 ---------- */
+// ---------- utils ----------
 const pad=n=>String(n).padStart(2,'0');
 const fmt=m=>{const d=Math.floor(m/1440)+1,t=m%1440;return`Day${d} ${pad(t/60|0)}:${pad(t%60)}`};
-const restOpts=[0,5,10,15,20,30,45,60];
-let rests=[],nights=[],dayStarts=[];             // dayStarts = 每天起走 HH:mm
-const restSel=(i,v)=>`<select class='restSel' data-idx='${i}'>${restOpts.map(x=>`<option value='${x}'${x===v?' selected':''}>${x}</option>`).join('')}</select>`;
+const RESTS=[0,5,10,15,20,30,45,60];
+let rests=[],nights=[],dayStarts=[];
+const restSel=(i,v)=>`<select class='restSel' data-idx='${i}'>${RESTS.map(x=>`<option value='${x}'${x===v?' selected':''}>${x}</option>`).join('')}</select>`;
 const nightChk=(i,v)=>`<input type='checkbox' class='overnight' data-idx='${i}'${v?' checked':''}>`;
 
-/* ---------- 計算 ---------- */
+// ---------- calc ----------
 function calc(data){
-  /* ❶ 先記錄目前有哪些 Day 展開 */
   const opened=new Set(Array.from(dom.output.querySelectorAll('details[open]')).map(d=>+d.dataset.day));
-  if(opened.size===0) opened.add(0);   // 第一次載入至少展開 Day1
+  if(opened.size===0) opened.add(0);
 
   const f=parseFloat(dom.factorInp.value);
   if(isNaN(f)||f<0.1||f>2){alert('倍率錯誤');return;}
@@ -194,55 +169,77 @@ function calc(data){
     if(!p){dom.output.textContent=`${seq[i]}→${seq[i+1]} 無路徑`;return;}
     if(i)p.shift(); full=full.concat(p);
   }
-  const segCount=full.length-1;
-  if(rests.length!==segCount) rests=Array(segCount).fill(0);
-  if(nights.length!==segCount) nights=Array(segCount).fill(false);
+  const seg=full.length-1;
+  if(rests.length!==seg) rests=Array(seg).fill(0);
+  if(nights.length!==seg) nights=Array(seg).fill(false);
 
   const days=[];let legs=[],dWalk=0,dRest=0,dayIdx=0;
-  if(dayStarts.length===0) dayStarts.push('06:00');  // Day1 預設
-  for(let i=0;i<segCount;i++){
+  if(dayStarts.length===0) dayStarts.push('06:00');
+  for(let i=0;i<seg;i++){
     const a=full[i],b=full[i+1],e=data.edges.find(x=>(x.from===a&&x.to===b)||(x.from===b&&x.to===a));
     const walk=Math.round(((e.from===a)?e.up:e.down)*f); now+=walk;
     legs.push({from:a,to:b,walk,arr:now,rest:rests[i],nite:nights[i],idx:i});
     dWalk+=walk; dRest+=rests[i]; now+=rests[i];
-    if(nights[i]||i===segCount-1){
+    if(nights[i]||i===seg-1){
       days.push({walk:dWalk,rest:dRest,legs});
       legs=[];dWalk=dRest=0;dayIdx++;
       if(!dayStarts[dayIdx]) dayStarts[dayIdx]='06:00';
+      now+=1440;                                           // 先 +1 天
       const [hh,mm]=dayStarts[dayIdx].split(':').map(Number);
       now=Math.floor(now/1440)*1440+hh*60+mm;
     }
   }
 
-  /* ❷ 重新渲染，維持展開 */
-  let html='';days.forEach((d,di)=>{
+  let html='';
+  days.forEach((d,di)=>{
     const st=dayStarts[di];
     html+=`<details data-day="${di}"${opened.has(di)?' open':''}>
-      <summary>
-        Day ${di+1}　<input type="time" class="dayStart" data-day="${di}" value="${st}">
-        — 行走 ${d.walk} 分・休息 ${d.rest} 分
-      </summary>
+      <summary>Day ${di+1}　<input type="time" class="dayStart" data-day="${di}" value="${st}"> — 行走 ${d.walk} 分・休息 ${d.rest} 分</summary>
       <table class='dayTbl'><thead><tr><th>#</th><th>區段</th><th>行走</th><th>抵達</th><th>休息</th><th>過夜</th></tr></thead><tbody>`;
-    d.legs.forEach((l,i)=>{html+=`<tr${l.nite?' class=\"nightStop\"':''}>
-        <td>${i+1}</td><td>${l.from} → ${l.to}</td><td>${l.walk}</td>
-        <td><span class='arrival'>${fmt(l.arr)}</span></td>
-        <td>${restSel(l.idx,l.rest)}</td><td>${nightChk(l.idx,l.nite)}</td></tr>`;});
-    html+=`</tbody></table></details>`;
+    d.legs.forEach((l,i)=>{html+=`<tr${l.nite?' class="nightStop"':''}><td>${i+1}</td><td>${l.from} → ${l.to}</td><td>${l.walk}</td><td><span class='arrival'>${fmt(l.arr)}</span></td><td>${restSel(l.idx,l.rest)}</td><td>${nightChk(l.idx,l.nite)}</td></tr>`;});
+    html+='</tbody></table></details>';
   });
   dom.output.innerHTML=html;
+  window.latestDays=days;            // export
 }
 
-/* ---------- 事件綁定 ---------- */
+// ---------- export txt ----------
+function buildTxt(days){
+  const pad=n=>String(n).padStart(2,'0');
+  const rpad=(s,len)=> (s+' '.repeat(len)).substring(0,len);
+  let txt='';
+  days.forEach((d,di)=>{
+    txt+=`┌─────────────  Day ${di+1}  ─────────────┐\n`;
+    txt+=`行走 ${d.walk.toString().padStart(3)} 分   休息 ${d.rest.toString().padStart(3)} 分\n`;
+    txt+='────────────────────────────────────\n';
+    txt+='  #  區段                          走   休   抵達\n';
+    d.legs.forEach((l,i)=>{
+      const restStr=l.rest?l.rest.toString().padStart(3):'   ';
+      const over=l.nite?'  ←過夜':'';
+      txt+=`  ${String(i+1).padEnd(2)} ${rpad(l.from+' → '+l.to,28)} ${l.walk.toString().padStart(3)} ${restStr}   ${pad(Math.floor(l.arr/60)%24)}:${pad(l.arr%60)}${over}\n`;
+    });
+    txt+='\n';
+  });
+  return txt.replace(/\n/g,'\r\n');   // Windows newline
+}
+dom.exportBtn.onclick=()=>{if(!window.latestDays){alert('請先計算');return;}
+  const blob=new Blob([buildTxt(window.latestDays)],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='hike_plan.txt';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+};
+
+// ---------- listeners ----------
 dom.output.addEventListener('change',e=>{
   const t=e.target;
-  if(t.classList.contains('restSel')){rests[+t.dataset.idx]=+t.value||0;}
-  else if(t.classList.contains('overnight')){nights[+t.dataset.idx]=t.checked;}
-  else if(t.classList.contains('dayStart')){dayStarts[+t.dataset.day]=t.value||'06:00';}
-  const d=cache[dom.routeSel.value]; if(d) calc(d);
+  if(t.classList.contains('restSel')) rests[+t.dataset.idx]=+t.value||0;
+  else if(t.classList.contains('overnight')) nights[+t.dataset.idx]=t.checked;
+  else if(t.classList.contains('dayStart')) dayStarts[+t.dataset.day]=t.value||'06:00';
+  const d=cache[dom.routeSel.value];if(d) calc(d);
 });
 dom.runBtn.onclick=()=>{const d=cache[dom.routeSel.value];if(d) calc(d);};
 
-/* ---------- Page load ---------- */
+// ---------- onload ----------
 document.addEventListener('DOMContentLoaded',async()=>{
   dom.routeSel.selectedIndex=0;
   dom.routeImg.src=ROUTE_META[dom.routeSel.value].img;
@@ -250,3 +247,5 @@ document.addEventListener('DOMContentLoaded',async()=>{
 });
 })();
 </script>
+</body>
+</html>
