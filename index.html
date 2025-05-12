@@ -191,9 +191,11 @@ function calc(data){
 
   const f=parseFloat(dom.factorInp.value);
   if(isNaN(f)||f<0.1||f>2){alert('倍率錯誤');return;}
-  const [sh,sm]=dom.startTime.value.split(':').map(Number);
-  let now=sh*60+sm;
+   const startStr = dom.startTime.value; // "HH:MM"
+  const [sh, sm] = startStr.split(':').map(Number);
+  let now = sh*60 + sm;
 
+  dayStarts[0] = startStr;  
   const seq=[dom.startSel.value,...Array.from(dom.chosenSel.options).map(o=>o.value),dom.endSel.value];
   if(seq.length<2){dom.output.textContent='請選起點與終點';return;}
 
@@ -260,14 +262,24 @@ dom.exportPdf.onclick=()=>{if(!window.latestDays){alert('請先計算');return;}
   };
   html2pdf().from(dom.output).set(opt).save();
 };
-
+dom.startTime.addEventListener('change', () => {
+  const d = cache[dom.routeSel.value];
+  if(d) calc(d);              // 立即重算並更新 Day1 summary
+});
 /* ---------- update on change ---------- */
 dom.output.addEventListener('change',e=>{
   const t=e.target;
   if(t.classList.contains('restSel')) rests[+t.dataset.idx]=+t.value||0;
   else if(t.classList.contains('overnight')) nights[+t.dataset.idx]=t.checked;
-  else if(t.classList.contains('dayStart')) dayStarts[+t.dataset.day]=t.value||'06:00';
-  const d=cache[dom.routeSel.value]; if(d) calc(d);
+ else if(t.classList.contains('dayStart')){
+  const idx = +t.dataset.day;
+  dayStarts[idx] = t.value || '06:00';
+  if(idx === 0){                   
+    dom.startTime.value = t.value || '06:00';
+  }
+  const d = cache[dom.routeSel.value];
+  if(d) calc(d);
+  }
 });
 dom.runBtn.onclick=()=>{const d=cache[dom.routeSel.value];if(d) calc(d);};
 
