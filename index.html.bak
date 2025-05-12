@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>步程時間估算器｜多天縱走</title>
 <style>
+/* ---------- 基本樣式 ---------- */
 body{font-family:Arial,Helvetica,sans-serif;line-height:1.55;max-width:1050px;margin:auto;padding:1rem}
 h2{margin:.6rem 0 1rem;font-size:1.7rem}
 img{width:100%;height:auto;border-radius:.75rem;box-shadow:0 4px 10px rgba(0,0,0,.12)}
@@ -29,14 +30,20 @@ details{border:1px solid #ddd;border-radius:.6rem;margin-top:1rem;padding:.6rem}
 details[open]{background:#fafafa}
 summary{font-weight:600;cursor:pointer;outline:none}
 summary::-webkit-details-marker{display:none}
-/* 恢復 Day 出發時間欄位寬度 */
 summary input[type=time]{font-size:inherit;width:auto;margin:0 .4rem}
+
+/* -------- 打印 / PDF -------- */
+@media print{
+  .controls,.transfer{display:none}
+  body{max-width:none;padding:0}
+}
 </style>
 </head>
 <body>
 <h2>步程時間估算器（多天縱走版）</h2>
 <img id="routeImg" src="bai_gu_route.png" alt="路線示意圖">
 
+<!-- 控制列 -->
 <div class="controls">
   <label for="route">路線：</label><select id="route"></select>
   <label for="start">起點：</label><select id="start"></select>
@@ -45,33 +52,59 @@ summary input[type=time]{font-size:inherit;width:auto;margin:0 .4rem}
   <label for="startTime">Day1 出發：</label><input id="startTime" type="time" value="06:00">
   <button id="runBtn">計算</button>
   <button id="exportTxt">匯出 TXT</button>
+  <button id="exportPdf">匯出 PDF</button>
 </div>
 
 <p><strong>搜尋節點：</strong><input id="filter" type="text" placeholder="輸入關鍵字篩選"></p>
 
+<!-- 兩欄節點搬移 -->
 <div class="transfer">
   <div class="box"><label>可選節點</label><select id="avail" multiple></select></div>
   <div class="btns"><button id="add">➜</button><button id="remove">⬅</button></div>
   <div class="box"><label>已選節點（經途順序）</label><select id="chosen" multiple></select></div>
 </div>
 
+<!-- 結果區：同時作為 PDF 來源 -->
 <div id="output"></div>
+
+<!-- html2pdf CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 
 <script>
 (()=>{
-// ---------- DOM ----------
+/* ---------- DOM shortcuts ---------- */
 const $=q=>document.querySelector(q);
 const dom={routeSel:$('#route'),startSel:$('#start'),endSel:$('#end'),availSel:$('#avail'),chosenSel:$('#chosen'),
   addBtn:$('#add'),rmBtn:$('#remove'),factorInp:$('#factor'),startTime:$('#startTime'),
-  runBtn:$('#runBtn'),exportBtn:$('#exportTxt'),routeImg:$('#routeImg'),output:$('#output'),filterInp:$('#filter')};
+  runBtn:$('#runBtn'),exportTxt:$('#exportTxt'),exportPdf:$('#exportPdf'),
+  routeImg:$('#routeImg'),output:$('#output'),filterInp:$('#filter')};
 
-// ---------- meta ----------
+/* ---------- meta ---------- */
 const ROUTE_META={
-  '白姑大山':{id:'bai_gu',img:'bai_gu_route.png'},
-  '玉山群峰':{id:'yushan',img:'yushan_route.png'}
+  "白姑大山": {id:"bai_gu",img:"bai_gu_route.png"},
+  "玉山群峰": {id:"yushan",img:"yushan_route.png"},
+  "郡大山":   {id:"jun_da",img:"jun_da_route.png"},
+  "西巒大山": {id:"xi_luan",img:"xi_luan_route.png"},
+  "大霸聖稜": {id:"da_ba_sheng_ridge",img:"da_ba_sheng_route.png"},
+  "雪山西南稜": { id: "xueshan_south_ridge", img: "xueshan_south_ridge.png" },
+  "北一段": { id: "section_1_north", img: "section_1_north.png" },
+  "畢祿羊頭": { id: "pilushan_yangtou", img: "pilushan_yangtou_route.png" },
+  "閂山鈴鳴": { id: "fanshan_lingming", img: "fanshan_lingming_route.png" },
+  "合歡西北峰": { id: "hehuan_west_north", img: "hehuan_west_north_route.png" },
+  "屏風山": { id: "pingfengshan", img: "pingfengshan_route.png" },
+  "奇萊群峰": { id: "qilai_range", img: "qilai_range_route.png" },
+  "奇萊東稜": { id: "qilai_east_ridge", img: "qilai_east_ridge_route.png" },
+  "能高安東軍": { id: "nenggao_andongjun", img: "nenggao_andongjun_route.png" },
+  "干卓萬群峰": { id: "kanzhuowan_range", img: "kanzhuowan_range_route.png" },
+  "丹大東郡橫斷": {id: "danda_dongjun",img: "danda_dongjun_route.png"},
+  "馬博拉斯橫斷縱走": { id: "mabolas_traverse", img: "mabolas_traverse_route.png" },
+  "南二段": { id: "nan_er_duan", img: "nan_er_duan_route.png" }, 
+  "新康橫斷&戒茂斯嘉明湖": {id:"xin_kang",img:"xin_kang_route.png"},
+  "南一段": { id: "nan_yi_duan", img: "nan_yi_duan_route.png" },
+  "北大武山": { id: "bei_da_wu_shan", img: "bei_da_wu_shan_route.png" }
 };
 
-// ---------- cache ----------
+/* ---------- cache ---------- */
 const cache={};
 async function loadRoute(name){
   if(cache[name]) return cache[name];
@@ -80,14 +113,14 @@ async function loadRoute(name){
   return cache[name]=await res.json();
 }
 
-// ---------- init route select ----------
+/* ---------- init route select ---------- */
 Object.keys(ROUTE_META).forEach(n=>dom.routeSel.add(new Option(n,n)));
 dom.routeSel.addEventListener('change',async()=>{
   dom.routeImg.src=ROUTE_META[dom.routeSel.value].img;
   const d=await loadRoute(dom.routeSel.value); if(d) renderNodeSelects(d.nodes);
 });
 
-// ---------- render nodes ----------
+/* ---------- render nodes ---------- */
 function renderNodeSelects(nodes){
   dom.startSel.innerHTML=dom.endSel.innerHTML=dom.availSel.innerHTML='';
   const groups={},map={};
@@ -107,7 +140,7 @@ function renderNodeSelects(nodes){
   dom.startSel.selectedIndex=0;dom.endSel.selectedIndex=dom.endSel.length-1;
 }
 
-// ---------- search & transfer ----------
+/* ---------- search & transfer ---------- */
 dom.filterInp.oninput=()=>{const kw=dom.filterInp.value.trim().toLowerCase();
   Array.from(dom.availSel.options).forEach(o=>o.hidden=kw&&!o.text.toLowerCase().includes(kw));};
 dom.addBtn.onclick=()=>{Array.from(dom.availSel.selectedOptions).forEach(o=>{
@@ -123,7 +156,7 @@ dom.rmBtn.onclick=()=>{const map=JSON.parse(dom.availSel.dataset.map||'{}');
   });
 };
 
-// ---------- Dijkstra ----------
+/* ---------- Dijkstra ---------- */
 function adj(edges,f){const a={};edges.forEach(e=>{
   const u=Math.round(e.up*f),d=Math.round(e.down*f);
   (a[e.from]=a[e.from]||[]).push({to:e.to,cost:u});
@@ -143,7 +176,7 @@ function path(s,g,edges,f){
   const P=[];for(let v=g;v!=null;v=pre[v])P.push(v);return P.reverse();
 }
 
-// ---------- utils ----------
+/* ---------- utils ---------- */
 const pad=n=>String(n).padStart(2,'0');
 const fmt=m=>{const d=Math.floor(m/1440)+1,t=m%1440;return`Day${d} ${pad(t/60|0)}:${pad(t%60)}`};
 const RESTS=[0,5,10,15,20,30,45,60];
@@ -151,7 +184,7 @@ let rests=[],nights=[],dayStarts=[];
 const restSel=(i,v)=>`<select class='restSel' data-idx='${i}'>${RESTS.map(x=>`<option value='${x}'${x===v?' selected':''}>${x}</option>`).join('')}</select>`;
 const nightChk=(i,v)=>`<input type='checkbox' class='overnight' data-idx='${i}'${v?' checked':''}>`;
 
-// ---------- calc ----------
+/* ---------- calc ---------- */
 function calc(data){
   const opened=new Set(Array.from(dom.output.querySelectorAll('details[open]')).map(d=>+d.dataset.day));
   if(opened.size===0) opened.add(0);
@@ -184,7 +217,7 @@ function calc(data){
       days.push({walk:dWalk,rest:dRest,legs});
       legs=[];dWalk=dRest=0;dayIdx++;
       if(!dayStarts[dayIdx]) dayStarts[dayIdx]='06:00';
-      now+=1440;                                           // 先 +1 天
+      now+=1440;   // 進到隔天
       const [hh,mm]=dayStarts[dayIdx].split(':').map(Number);
       now=Math.floor(now/1440)*1440+hh*60+mm;
     }
@@ -200,46 +233,45 @@ function calc(data){
     html+='</tbody></table></details>';
   });
   dom.output.innerHTML=html;
-  window.latestDays=days;            // export
+  window.latestDays=days;    // 供匯出 TXT / PDF
 }
 
-// ---------- export txt ----------
+/* ---------- export TXT ---------- */
 function buildTxt(days){
   const pad=n=>String(n).padStart(2,'0');
-  const rpad=(s,len)=> (s+' '.repeat(len)).substring(0,len);
-  let txt='';
-  days.forEach((d,di)=>{
-    txt+=`┌─────────────  Day ${di+1}  ─────────────┐\n`;
-    txt+=`行走 ${d.walk.toString().padStart(3)} 分   休息 ${d.rest.toString().padStart(3)} 分\n`;
-    txt+='────────────────────────────────────\n';
-    txt+='  #  區段                          走   休   抵達\n';
-    d.legs.forEach((l,i)=>{
-      const restStr=l.rest?l.rest.toString().padStart(3):'   ';
-      const over=l.nite?'  ←過夜':'';
-      txt+=`  ${String(i+1).padEnd(2)} ${rpad(l.from+' → '+l.to,28)} ${l.walk.toString().padStart(3)} ${restStr}   ${pad(Math.floor(l.arr/60)%24)}:${pad(l.arr%60)}${over}\n`;
-    });
-    txt+='\n';
-  });
-  return txt.replace(/\n/g,'\r\n');   // Windows newline
+  let txt=''; days.forEach((d,di)=>{txt+=`──────────  Day ${di+1}  ──────────\r\n行走 ${d.walk} 分\t休息 ${d.rest} 分\r\n#\t區段\t\t\t走\t休\t抵達\r\n`;
+    d.legs.forEach((l,i)=>{const rest=l.rest?l.rest:'';const over=l.nite?'←過夜':'';txt+=`${i+1}\t${l.from} → ${l.to}\t${l.walk}\t${rest}\t${pad(Math.floor(l.arr/60)%24)}:${pad(l.arr%60)}\t${over}\r\n`;});txt+='\r\n';});
+  return txt;
 }
-dom.exportBtn.onclick=()=>{if(!window.latestDays){alert('請先計算');return;}
+dom.exportTxt.onclick=()=>{if(!window.latestDays){alert('請先計算');return;}
   const blob=new Blob([buildTxt(window.latestDays)],{type:'text/plain'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='hike_plan.txt';
   document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 };
 
-// ---------- listeners ----------
+/* ---------- export PDF ---------- */
+dom.exportPdf.onclick=()=>{if(!window.latestDays){alert('請先計算');return;}
+  const opt={
+    margin:10,
+    filename:'hike_plan.pdf',
+    html2canvas:{scale:2},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+  };
+  html2pdf().from(dom.output).set(opt).save();
+};
+
+/* ---------- update on change ---------- */
 dom.output.addEventListener('change',e=>{
   const t=e.target;
   if(t.classList.contains('restSel')) rests[+t.dataset.idx]=+t.value||0;
   else if(t.classList.contains('overnight')) nights[+t.dataset.idx]=t.checked;
   else if(t.classList.contains('dayStart')) dayStarts[+t.dataset.day]=t.value||'06:00';
-  const d=cache[dom.routeSel.value];if(d) calc(d);
+  const d=cache[dom.routeSel.value]; if(d) calc(d);
 });
 dom.runBtn.onclick=()=>{const d=cache[dom.routeSel.value];if(d) calc(d);};
 
-// ---------- onload ----------
+/* ---------- first load ---------- */
 document.addEventListener('DOMContentLoaded',async()=>{
   dom.routeSel.selectedIndex=0;
   dom.routeImg.src=ROUTE_META[dom.routeSel.value].img;
