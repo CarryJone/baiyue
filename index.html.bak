@@ -115,9 +115,27 @@ async function loadRoute(name){
 
 /* ---------- init route select ---------- */
 Object.keys(ROUTE_META).forEach(n=>dom.routeSel.add(new Option(n,n)));
-dom.routeSel.addEventListener('change',async()=>{
-  dom.routeImg.src=ROUTE_META[dom.routeSel.value].img;
-  const d=await loadRoute(dom.routeSel.value); if(d) renderNodeSelects(d.nodes);
+dom.routeSel.addEventListener('change', async () => {
+  const name = dom.routeSel.value;
+
+  dom.routeImg.src = ROUTE_META[name].img;
+  const data = await loadRoute(name);
+  if (!data) return;
+
+  /* 重新載入可選節點 */
+  renderNodeSelects(data.nodes);
+
+  /* -------- ① 清空「已選節點」清單 -------- */
+  dom.chosenSel.innerHTML = '';
+
+  /* -------- ② 重置內部狀態 -------- */
+  rests = [];
+  nights = [];
+  dayStarts = [];
+  window.latestDays = null;   // TXT / PDF 不再可用
+
+  /* -------- ③ 清空下方結果區 -------- */
+  dom.output.innerHTML = '';
 });
 
 /* ---------- render nodes ---------- */
@@ -195,7 +213,7 @@ function calc(data){
   const [sh, sm] = startStr.split(':').map(Number);
   let now = sh*60 + sm;
 
-  dayStarts[0] = startStr;**   
+  dayStarts[0] = startStr;  
   const seq=[dom.startSel.value,...Array.from(dom.chosenSel.options).map(o=>o.value),dom.endSel.value];
   if(seq.length<2){dom.output.textContent='請選起點與終點';return;}
 
@@ -267,19 +285,24 @@ dom.startTime.addEventListener('change', () => {
   if(d) calc(d);              // 立即重算並更新 Day1 summary
 });
 /* ---------- update on change ---------- */
-dom.output.addEventListener('change',e=>{
-  const t=e.target;
-  if(t.classList.contains('restSel')) rests[+t.dataset.idx]=+t.value||0;
-  else if(t.classList.contains('overnight')) nights[+t.dataset.idx]=t.checked;
- else if(t.classList.contains('dayStart')){
-  const idx = +t.dataset.day;
-  dayStarts[idx] = t.value || '06:00';
-  if(idx === 0){                   
-    dom.startTime.value = t.value || '06:00';
+dom.output.addEventListener('change', e=>{
+  const t = e.target;
+
+  if (t.classList.contains('restSel')) {
+    rests[+t.dataset.idx] = +t.value || 0;
+
+  } else if (t.classList.contains('overnight')) {
+    nights[+t.dataset.idx] = t.checked;
+
+  } else if (t.classList.contains('dayStart')) {
+    const idx = +t.dataset.day;
+    dayStarts[idx] = t.value || '06:00';
+    if (idx === 0) dom.startTime.value = t.value || '06:00';
   }
+
+  /* ← 不論哪種欄位，都在這裡統一重算 */
   const d = cache[dom.routeSel.value];
-  if(d) calc(d);
-  }
+  if (d) calc(d);
 });
 dom.runBtn.onclick=()=>{const d=cache[dom.routeSel.value];if(d) calc(d);};
 
