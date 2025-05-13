@@ -195,7 +195,7 @@ function calc(data){
   const [sh, sm] = startStr.split(':').map(Number);
   let now = sh*60 + sm;
 
-  dayStarts[0] = startStr;**   
+  dayStarts[0] = startStr;  
   const seq=[dom.startSel.value,...Array.from(dom.chosenSel.options).map(o=>o.value),dom.endSel.value];
   if(seq.length<2){dom.output.textContent='請選起點與終點';return;}
 
