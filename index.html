@@ -124,7 +124,7 @@ button:hover {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
 }
 #runBtn {
     font-weight: 700;
@@ -185,7 +185,6 @@ button:hover {
 #chosen-nodes-list li:active {
   cursor: grabbing;
 }
-/* SortableJS 的拖曳樣式 */
 .sortable-ghost {
   opacity: 0.4;
   background: #cde6ce;
@@ -202,6 +201,35 @@ button:hover {
 #output {
   margin-top: 1rem;
 }
+
+/* NEW: 視覺化統計面板樣式 */
+.summary-stats {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-around;
+    text-align: center;
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+.stat-item {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    background-color: var(--light-gray);
+    flex-grow: 1;
+}
+.stat-label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--dark-gray);
+}
+.stat-value {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+}
+
 table.dayTbl {
   border-collapse: collapse;
   width: 100%;
@@ -251,6 +279,19 @@ summary {
 summary input[type=time] {
     width: auto;
 }
+
+/* NEW: 歡迎訊息樣式 */
+#welcome-message {
+    padding: 1rem;
+    border: 1px solid var(--medium-gray);
+    border-radius: 6px;
+    background-color: #fafafa;
+}
+#welcome-message ul {
+    padding-left: 20px;
+    margin: 0.5rem 0 0;
+}
+
 
 /* ---------- 響應式設計 (RWD) ---------- */
 @media (max-width: 768px) {
@@ -334,8 +375,35 @@ summary input[type=time] {
       <img id="routeImg" src="bai_gu_route.png" alt="路線示意圖">
       
       <div class="card">
-          <h3 class="card-header">計算結果</h3>
-          <div id="output"></div>
+          <h3 class="card-header">行程結果</h3>
+          
+          <div id="summary-stats" class="summary-stats">
+              <div class="stat-item">
+                  <span class="stat-label">總天數</span>
+                  <span id="total-days" class="stat-value">--</span>
+              </div>
+              <div class="stat-item">
+                  <span class="stat-label">總步行</span>
+                  <span id="total-walk" class="stat-value">--</span>
+              </div>
+              <div class="stat-item">
+                  <span class="stat-label">總休息</span>
+                  <span id="total-rest" class="stat-value">--</span>
+              </div>
+          </div>
+
+          <div id="output">
+              <div id="welcome-message">
+                  <h4>歡迎使用！</h4>
+                  <p>請依照以下步驟規劃你的行程：</p>
+                  <ul>
+                      <li><b>步驟一：</b>在左側「路線設定」選擇路線、起終點。</li>
+                      <li><b>步驟二：</b>於「節點選擇」勾選想經過的地點。</li>
+                      <li><b>步驟三：</b>在下方「已選路徑」區塊拖曳調整順序。</li>
+                      <li><b>步驟四：</b>點擊「計算行程」按鈕！</li>
+                  </ul>
+              </div>
+          </div>
           <div class="export-buttons">
               <button id="exportTxt">匯出 TXT</button>
               <button id="exportPdf">匯出 PDF</button>
@@ -352,13 +420,14 @@ summary input[type=time] {
 (()=>{
 /* ---------- DOM shortcuts ---------- */
 const $=q=>document.querySelector(q);
-// DOM references 已更新
 const dom={
   routeSel:$('#route'), startSel:$('#start'), endSel:$('#end'),
   factorInp:$('#factor'), startTime:$('#startTime'),
   runBtn:$('#runBtn'), exportTxt:$('#exportTxt'), exportPdf:$('#exportPdf'),
   routeImg:$('#routeImg'), output:$('#output'), filterInp:$('#filter'),
-  availList:$('#avail-nodes-list'), chosenList:$('#chosen-nodes-list')
+  availList:$('#avail-nodes-list'), chosenList:$('#chosen-nodes-list'),
+  // NEW: 統計面板的 DOM 元素
+  totalDays:$('#total-days'), totalWalk:$('#total-walk'), totalRest:$('#total-rest')
 };
 
 /* ---------- meta ---------- */
@@ -388,7 +457,7 @@ const ROUTE_META={
 
 /* ---------- cache & state ---------- */
 const cache={};
-let chosenNodesMap = new Map(); // 用 Map 來追蹤已選節點，方便管理
+let chosenNodesMap = new Map();
 
 async function loadRoute(name){
   if(cache[name]) return cache[name];
@@ -405,7 +474,6 @@ dom.routeSel.addEventListener('change', async () => {
   const data = await loadRoute(name);
   if (!data) return;
   renderNodeSelects(data.nodes);
-  // 清空狀態
   dom.chosenList.innerHTML = '';
   chosenNodesMap.clear();
   rests = [];
@@ -416,7 +484,7 @@ dom.routeSel.addEventListener('change', async () => {
   dom.output.innerHTML = '';
 });
 
-/* ---------- render nodes (已修改) ---------- */
+/* ---------- render nodes ---------- */
 function renderNodeSelects(nodes){
   dom.startSel.innerHTML=dom.endSel.innerHTML=dom.availList.innerHTML='';
   const groups={};
@@ -427,14 +495,12 @@ function renderNodeSelects(nodes){
   });
   
   Object.entries(groups).forEach(([g, list]) => {
-    // 渲染起點和終點下拉選單
     const og1=document.createElement('optgroup');
     og1.label=g;
     list.forEach(n => og1.appendChild(new Option(n,n)));
     dom.startSel.add(og1);
     dom.endSel.add(og1.cloneNode(true));
     
-    // 渲染可選節點列表
     const groupTitle = document.createElement('h4');
     groupTitle.className = 'group-title';
     groupTitle.textContent = g;
@@ -449,10 +515,10 @@ function renderNodeSelects(nodes){
   });
 
   dom.startSel.selectedIndex=0;
-  dom.endSel.selectedIndex = dom.endSel.options.length-1;
+  dom.endSel.selectedIndex = dom.endSel.options.length - 1;
 }
 
-/* ---------- search & transfer (已修改) ---------- */
+/* ---------- search & transfer ---------- */
 dom.filterInp.oninput = () => {
   const kw = dom.filterInp.value.trim().toLowerCase();
   dom.availList.querySelectorAll('li').forEach(li => {
@@ -481,13 +547,12 @@ dom.availList.addEventListener('change', (e) => {
   }
 });
 
-// 初始化拖放功能
 new Sortable(dom.chosenList, {
     animation: 150,
     ghostClass: 'sortable-ghost'
 });
 
-/* ---------- Dijkstra (原樣) ---------- */
+/* ---------- Dijkstra ---------- */
 function adj(edges,f){const a={};edges.forEach(e=>{
   const u=Math.round(e.up*f),d=Math.round(e.down*f);
   (a[e.from]=a[e.from]||[]).push({to:e.to,cost:u});
@@ -507,16 +572,30 @@ function path(s,g,edges,f){
   const P=[];for(let v=g;v!=null;v=pre[v])P.push(v);return P.reverse();
 }
 
-/* ---------- utils (原樣) ---------- */
+/* ---------- utils ---------- */
 const pad=n=>String(n).padStart(2,'0');
 const fmt=m=>{const d=Math.floor(m/1440)+1,t=m%1440;return`Day${d} ${pad(t/60|0)}:${pad(t%60)}`};
+// NEW: 將分鐘轉為 "X 小時 Y 分"
+const formatMinutes = (totalMinutes) => {
+    if (totalMinutes === 0) return '0 分';
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    let result = '';
+    if (hours > 0) result += `${hours} 小時 `;
+    if (minutes > 0) result += `${minutes} 分`;
+    return result.trim();
+};
 const RESTS=[0,5,10,15,20,30,45,60,90,120];
 let rests=[],nights=[],dayStarts=[];
 const restSel=(i,v)=>`<select class='restSel' data-idx='${i}'>${RESTS.map(x=>`<option value='${x}'${x===v?' selected':''}>${x}</option>`).join('')}</select>`;
 const nightChk=(i,v)=>`<input type='checkbox' class='overnight' data-idx='${i}'${v?' checked':''}>`;
 
-/* ---------- calc (已修改) ---------- */
+/* ---------- calc (MODIFIED) ---------- */
 function calc(data){
+  // NEW: 移除歡迎訊息
+  const welcomeMsg = $('#welcome-message');
+  if (welcomeMsg) welcomeMsg.remove();
+    
   const opened=new Set(Array.from(dom.output.querySelectorAll('details[open]')).map(d=>+d.dataset.day));
   if(opened.size===0) opened.add(0);
 
@@ -528,7 +607,6 @@ function calc(data){
 
   dayStarts[0] = startStr;  
   
-  // 修改：從新的 chosenList 獲取途經點
   const waypoints = Array.from(dom.chosenList.querySelectorAll('li')).map(li => li.dataset.nodeName);
   const seq=[dom.startSel.value, ...waypoints, dom.endSel.value];
   
@@ -574,23 +652,65 @@ function calc(data){
   });
   dom.output.innerHTML=html;
   window.latestDays=days;
+
+  // NEW: 更新統計面板
+  const totalWalk = days.reduce((sum, day) => sum + day.walk, 0);
+  const totalRest = days.reduce((sum, day) => sum + day.rest, 0);
+  dom.totalDays.textContent = `${days.length} 天`;
+  dom.totalWalk.textContent = formatMinutes(totalWalk);
+  dom.totalRest.textContent = formatMinutes(totalRest);
 }
 
-/* ---------- export TXT (原樣) ---------- */
+/* ---------- export TXT (MODIFIED) ---------- */
+// NEW: 智慧補空白函式，處理中英文對齊
+const padString = (str, targetLength) => {
+    let displayLength = 0;
+    for (let i = 0; i < str.length; i++) {
+        // 中文字元通常佔用 2 個單位寬度
+        displayLength += str.charCodeAt(i) > 255 ? 2 : 1;
+    }
+    const padding = Math.max(0, targetLength - displayLength);
+    return str + ' '.repeat(padding);
+};
+
 function buildTxt(days){
-  const pad=n=>String(n).padStart(2,'0');
-  let txt=''; days.forEach((d,di)=>{txt+=`──────────  Day ${di+1}  ──────────\r\n行走 ${d.walk} 分\t休息 ${d.rest} 分\r\n#\t區段\t\t\t走\t休\t抵達\r\n`;
-    d.legs.forEach((l,i)=>{const rest=l.rest?l.rest:'';const over=l.nite?'←過夜':'';txt+=`${l.idx+1}\t${l.from} → ${l.to}\t${l.walk}\t${rest}\t${pad(Math.floor(l.arr/60)%24)}:${pad(l.arr%60)}\t${over}\r\n`;});txt+='\r\n';});
+  let txt = '';
+  // NEW: 使用新的排版邏輯
+  const totalWalk = days.reduce((sum, day) => sum + day.walk, 0);
+  const totalRest = days.reduce((sum, day) => sum + day.rest, 0);
+  
+  txt += "行程總覽\n";
+  txt += "────────────────────────────────────────\n";
+  txt += `總天數： ${days.length} 天\n`;
+  txt += `總步行時間： ${formatMinutes(totalWalk)}\n`;
+  txt += `總休息時間： ${formatMinutes(totalRest)}\n\n`;
+
+  days.forEach((d, di) => {
+    txt += `─────────────── Day ${di + 1} (步行 ${d.walk}分 / 休息 ${d.rest}分) ───────────────\n`;
+    txt += " #  | " + padString("區段", 30) + " | " + padString("行走", 6) + " | " + padString("休息", 6) + " | " + padString("抵達", 8) + " | 備註\n";
+    txt += "────┼" + "─".repeat(32) + "┼" + "─".repeat(8) + "┼" + "─".repeat(8) + "┼" + "─".repeat(10) + "┼" + "──────\n";
+    d.legs.forEach((l) => {
+      const idxStr = padString((l.idx + 1).toString(), 3);
+      const segmentStr = padString(`${l.from} → ${l.to}`, 30);
+      const walkStr = padString(l.walk.toString(), 6);
+      const restStr = padString(l.rest.toString(), 6);
+      const arrivalTime = fmt(l.arr).split(' ')[1]; // 只取 HH:MM
+      const arrivalStr = padString(arrivalTime, 8);
+      const noteStr = l.nite ? '過夜' : '';
+      txt += ` ${idxStr}| ${segmentStr} | ${walkStr} | ${restStr} |  ${arrivalStr} | ${noteStr}\n`;
+    });
+    txt += "\n";
+  });
   return txt;
 }
 dom.exportTxt.onclick=()=>{if(!window.latestDays){alert('請先計算');return;}
-  const blob=new Blob([buildTxt(window.latestDays)],{type:'text/plain'});
+  const blob=new Blob([buildTxt(window.latestDays)],{type:'text/plain;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='hike_plan.txt';
   document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 };
 
-/* ---------- export PDF (原樣) ---------- */
+/* ---------- export PDF ---------- */
 dom.exportPdf.onclick=()=>{if(!window.latestDays){alert('請先計算');return;}
   const opt={
     margin:10,
@@ -598,14 +718,13 @@ dom.exportPdf.onclick=()=>{if(!window.latestDays){alert('請先計算');return;}
     html2canvas:{scale:2},
     jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
   };
-  const content = dom.results-panel;
-  html2pdf().from(dom.output).set(opt).save();
+  html2pdf().from($('.results-panel .card')).set(opt).save();
 };
 dom.startTime.addEventListener('change', () => {
   const d = cache[dom.routeSel.value];
   if(d) calc(d);
 });
-/* ---------- update on change (原樣) ---------- */
+/* ---------- update on change ---------- */
 dom.output.addEventListener('change', e=>{
   const t = e.target;
   if (t.classList.contains('restSel')) {
@@ -622,11 +741,15 @@ dom.output.addEventListener('change', e=>{
 });
 dom.runBtn.onclick=()=>{const d=cache[dom.routeSel.value];if(d) calc(d);};
 
-/* ---------- first load (原樣) ---------- */
-document.addEventListener('DOMContentLoaded',async()=>{
+/* ---------- first load (MODIFIED) ---------- */
+document.addEventListener('DOMContentLoaded', async () => {
   dom.routeSel.selectedIndex=0;
   dom.routeImg.src=ROUTE_META[dom.routeSel.value].img;
-  const d=await loadRoute(dom.routeSel.value); if(d) renderNodeSelects(d);
+  const data = await loadRoute(dom.routeSel.value);
+  if(data) {
+      // Bug Fix: 傳遞 data.nodes 而不是整個 data 物件
+      renderNodeSelects(data.nodes);
+  }
 });
 })();
 </script>

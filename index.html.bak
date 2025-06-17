@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
 <style>
 /* ---------- 全局與基本樣式 ---------- */
@@ -38,6 +39,26 @@ h2 {
   font-weight: 700;
   color: var(--text-color);
 }
+h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+.card-header {
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--medium-gray);
+}
+.sub-header {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--dark-gray);
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+.sub-header small {
+    font-weight: 400;
+}
 
 /* ---------- 主要佈局 ---------- */
 .main-layout {
@@ -61,14 +82,6 @@ h2 {
   box-shadow: var(--card-shadow);
   padding: 1.25rem;
   margin-bottom: 1.5rem;
-}
-.card-header {
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin-top: 0;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--medium-gray);
 }
 
 /* ---------- 控制項樣式 ---------- */
@@ -117,42 +130,66 @@ button:hover {
     font-weight: 700;
 }
 
-/* ---------- 節點選擇器樣式 ---------- */
-.transfer {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  justify-content: space-between;
-}
-.box {
-  display: flex;
-  flex-direction: column;
-  gap: .5rem;
-  width: 45%;
-}
-.transfer select {
-  width: 100%;
-  height: 220px;
+/* ---------- 節點選擇器新樣式 ---------- */
+#avail-nodes-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  max-height: 250px;
+  overflow-y: auto;
   border: 1px solid var(--medium-gray);
   border-radius: 6px;
-  padding: .25rem;
+  padding: 0.5rem;
 }
-.btns {
+#avail-nodes-list .group-title {
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+  padding-left: 0.25rem;
+}
+#avail-nodes-list li {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
   display: flex;
-  flex-direction: column;
-  gap: .75rem;
+  align-items: center;
 }
-.btns button {
-  padding: .25rem .75rem;
-  font-size: 1.25rem;
+#avail-nodes-list li:hover {
+  background-color: var(--light-gray);
+}
+#avail-nodes-list input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.75rem;
+}
+#chosen-nodes-list {
+  list-style-type: none;
+  padding: 0.5rem;
+  margin: 0;
+  min-height: 50px;
+  border: 1px dashed var(--dark-gray);
+  background-color: #fafafa;
+  border-radius: 6px;
+}
+#chosen-nodes-list li {
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.25rem;
+  background-color: #fff;
   border: 1px solid var(--medium-gray);
-  background: var(--light-gray);
-  color: var(--text-color);
+  border-radius: 4px;
+  cursor: grab;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
-.btns button:hover {
-    background: var(--medium-gray);
+#chosen-nodes-list li:active {
+  cursor: grabbing;
 }
-
+/* SortableJS 的拖曳樣式 */
+.sortable-ghost {
+  opacity: 0.4;
+  background: #cde6ce;
+}
 
 /* ---------- 結果區樣式 ---------- */
 #routeImg {
@@ -280,15 +317,16 @@ summary input[type=time] {
       <div class="card">
         <h3 class="card-header">節點選擇</h3>
         <div class="form-group">
-            <label for="filter">搜尋節點：</label>
+            <label for="filter">搜尋可選節點：</label>
             <input id="filter" type="text" placeholder="輸入關鍵字篩選">
         </div>
 
-        <div class="transfer">
-            <div class="box"><label>可選節點</label><select id="avail" multiple></select></div>
-            <div class="btns"><button id="add">➜</button><button id="remove">⬅</button></div>
-            <div class="box"><label>已選節點 (順序)</label><select id="chosen" multiple></select></div>
-        </div>
+        <ul id="avail-nodes-list">
+            </ul>
+
+        <h4 class="sub-header">已選路徑 <small>(順序可拖曳調整)</small></h4>
+        <ul id="chosen-nodes-list">
+            </ul>
       </div>
     </aside>
 
@@ -311,15 +349,17 @@ summary input[type=time] {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 
 <script>
-// 你的 JavaScript 程式碼維持原樣，不需變更
-// I've moved your original script here without any changes.
 (()=>{
 /* ---------- DOM shortcuts ---------- */
 const $=q=>document.querySelector(q);
-const dom={routeSel:$('#route'),startSel:$('#start'),endSel:$('#end'),availSel:$('#avail'),chosenSel:$('#chosen'),
-  addBtn:$('#add'),rmBtn:$('#remove'),factorInp:$('#factor'),startTime:$('#startTime'),
-  runBtn:$('#runBtn'),exportTxt:$('#exportTxt'),exportPdf:$('#exportPdf'),
-  routeImg:$('#routeImg'),output:$('#output'),filterInp:$('#filter')};
+// DOM references 已更新
+const dom={
+  routeSel:$('#route'), startSel:$('#start'), endSel:$('#end'),
+  factorInp:$('#factor'), startTime:$('#startTime'),
+  runBtn:$('#runBtn'), exportTxt:$('#exportTxt'), exportPdf:$('#exportPdf'),
+  routeImg:$('#routeImg'), output:$('#output'), filterInp:$('#filter'),
+  availList:$('#avail-nodes-list'), chosenList:$('#chosen-nodes-list')
+};
 
 /* ---------- meta ---------- */
 const ROUTE_META={
@@ -346,8 +386,10 @@ const ROUTE_META={
   "北大武山": { id: "bei_da_wu_shan", img: "bei_da_wu_shan_route.png" }
 };
 
-/* ---------- cache ---------- */
+/* ---------- cache & state ---------- */
 const cache={};
+let chosenNodesMap = new Map(); // 用 Map 來追蹤已選節點，方便管理
+
 async function loadRoute(name){
   if(cache[name]) return cache[name];
   const res=await fetch(`routes/${ROUTE_META[name].id}.json`);
@@ -362,57 +404,90 @@ dom.routeSel.addEventListener('change', async () => {
   dom.routeImg.src = ROUTE_META[name].img;
   const data = await loadRoute(name);
   if (!data) return;
-
-  /* 重新載入可選節點 */
   renderNodeSelects(data.nodes);
-
-  /* -------- reset -------- */
-  dom.chosenSel.innerHTML = '';    // 清空已選節點
+  // 清空狀態
+  dom.chosenList.innerHTML = '';
+  chosenNodesMap.clear();
   rests = [];
   nights = [];
-  dayStarts = ['06:00'];           // Day1 預設 06:00
-  dom.startTime.value = '06:00';   // 控制列同步成 06:00
-  window.latestDays = null;        // 先停用匯出
-  dom.output.innerHTML = '';       // 清空結果區
+  dayStarts = ['06:00'];
+  dom.startTime.value = '06:00';
+  window.latestDays = null;
+  dom.output.innerHTML = '';
 });
 
-/* ---------- render nodes ---------- */
+/* ---------- render nodes (已修改) ---------- */
 function renderNodeSelects(nodes){
-  dom.startSel.innerHTML=dom.endSel.innerHTML=dom.availSel.innerHTML='';
-  const groups={},map={};
-  nodes.forEach(n=>{const name=typeof n==='string'?n:n.name;const g=typeof n==='string'?'其他':(n.group||'其他');
-    map[name]=g;(groups[g]=groups[g]||[]).push(name);});
-  Object.entries(groups).forEach(([g,list])=>{
-    const og1=document.createElement('optgroup'),og2=og1.cloneNode(),og3=og1.cloneNode();
-    og1.label=og2.label=og3.label=g;
-    list.forEach(n=>{
-      og1.appendChild(new Option(n,n));
-      og2.appendChild(new Option(n,n));
-      const o=new Option(n,n);o.dataset.group=g;og3.appendChild(o);
-    });
-    dom.startSel.add(og1);dom.endSel.add(og2);dom.availSel.add(og3);
+  dom.startSel.innerHTML=dom.endSel.innerHTML=dom.availList.innerHTML='';
+  const groups={};
+  nodes.forEach(n=>{
+    const name = typeof n === 'string' ? n : n.name;
+    const g = typeof n === 'string' ? '其他' : (n.group || '其他');
+    (groups[g] = groups[g] || []).push(name);
   });
-  dom.availSel.dataset.map=JSON.stringify(map);
-  dom.startSel.selectedIndex=0;dom.endSel.selectedIndex=dom.endSel.length-1;
+  
+  Object.entries(groups).forEach(([g, list]) => {
+    // 渲染起點和終點下拉選單
+    const og1=document.createElement('optgroup');
+    og1.label=g;
+    list.forEach(n => og1.appendChild(new Option(n,n)));
+    dom.startSel.add(og1);
+    dom.endSel.add(og1.cloneNode(true));
+    
+    // 渲染可選節點列表
+    const groupTitle = document.createElement('h4');
+    groupTitle.className = 'group-title';
+    groupTitle.textContent = g;
+    dom.availList.appendChild(groupTitle);
+    
+    list.forEach(n => {
+      const li = document.createElement('li');
+      li.dataset.nodeName = n;
+      li.innerHTML = `<input type="checkbox" id="chk-${n}" data-node-name="${n}"><label for="chk-${n}">${n}</label>`;
+      dom.availList.appendChild(li);
+    });
+  });
+
+  dom.startSel.selectedIndex=0;
+  dom.endSel.selectedIndex = dom.endSel.options.length-1;
 }
 
-/* ---------- search & transfer ---------- */
-dom.filterInp.oninput=()=>{const kw=dom.filterInp.value.trim().toLowerCase();
-  Array.from(dom.availSel.options).forEach(o=>o.hidden=kw&&!o.text.toLowerCase().includes(kw));};
-dom.addBtn.onclick=()=>{Array.from(dom.availSel.selectedOptions).forEach(o=>{
-  const neo=new Option(o.value,o.value);neo.dataset.group=o.dataset.group;
-  dom.chosenSel.add(neo);o.remove();});
-};
-dom.rmBtn.onclick=()=>{const map=JSON.parse(dom.availSel.dataset.map||'{}');
-  Array.from(dom.chosenSel.selectedOptions).forEach(o=>{
-    const g=o.dataset.group||map[o.value]||'其他';
-    let og=[...dom.availSel.children].find(e=>e.label===g);
-    if(!og){og=document.createElement('optgroup');og.label=g;dom.availSel.add(og);}
-    const neo=new Option(o.value,o.value);neo.dataset.group=g;og.appendChild(neo);o.remove();
+/* ---------- search & transfer (已修改) ---------- */
+dom.filterInp.oninput = () => {
+  const kw = dom.filterInp.value.trim().toLowerCase();
+  dom.availList.querySelectorAll('li').forEach(li => {
+    const nodeName = li.dataset.nodeName.toLowerCase();
+    li.style.display = kw && !nodeName.includes(kw) ? 'none' : '';
   });
 };
 
-/* ---------- Dijkstra ---------- */
+dom.availList.addEventListener('change', (e) => {
+  if (e.target.type === 'checkbox') {
+    const nodeName = e.target.dataset.nodeName;
+    if (e.target.checked) {
+      if (!chosenNodesMap.has(nodeName)) {
+        const li = document.createElement('li');
+        li.dataset.nodeName = nodeName;
+        li.textContent = nodeName;
+        dom.chosenList.appendChild(li);
+        chosenNodesMap.set(nodeName, li);
+      }
+    } else {
+      if (chosenNodesMap.has(nodeName)) {
+        chosenNodesMap.get(nodeName).remove();
+        chosenNodesMap.delete(nodeName);
+      }
+    }
+  }
+});
+
+// 初始化拖放功能
+new Sortable(dom.chosenList, {
+    animation: 150,
+    ghostClass: 'sortable-ghost'
+});
+
+/* ---------- Dijkstra (原樣) ---------- */
 function adj(edges,f){const a={};edges.forEach(e=>{
   const u=Math.round(e.up*f),d=Math.round(e.down*f);
   (a[e.from]=a[e.from]||[]).push({to:e.to,cost:u});
@@ -432,7 +507,7 @@ function path(s,g,edges,f){
   const P=[];for(let v=g;v!=null;v=pre[v])P.push(v);return P.reverse();
 }
 
-/* ---------- utils ---------- */
+/* ---------- utils (原樣) ---------- */
 const pad=n=>String(n).padStart(2,'0');
 const fmt=m=>{const d=Math.floor(m/1440)+1,t=m%1440;return`Day${d} ${pad(t/60|0)}:${pad(t%60)}`};
 const RESTS=[0,5,10,15,20,30,45,60,90,120];
@@ -440,24 +515,28 @@ let rests=[],nights=[],dayStarts=[];
 const restSel=(i,v)=>`<select class='restSel' data-idx='${i}'>${RESTS.map(x=>`<option value='${x}'${x===v?' selected':''}>${x}</option>`).join('')}</select>`;
 const nightChk=(i,v)=>`<input type='checkbox' class='overnight' data-idx='${i}'${v?' checked':''}>`;
 
-/* ---------- calc ---------- */
+/* ---------- calc (已修改) ---------- */
 function calc(data){
   const opened=new Set(Array.from(dom.output.querySelectorAll('details[open]')).map(d=>+d.dataset.day));
   if(opened.size===0) opened.add(0);
 
   const f=parseFloat(dom.factorInp.value);
   if(isNaN(f)||f<0.1||f>2){alert('倍率錯誤');return;}
-   const startStr = dom.startTime.value; // "HH:MM"
+  const startStr = dom.startTime.value;
   const [sh, sm] = startStr.split(':').map(Number);
   let now = sh*60 + sm;
 
   dayStarts[0] = startStr;  
-  const seq=[dom.startSel.value,...Array.from(dom.chosenSel.options).map(o=>o.value),dom.endSel.value];
-  if(seq.length<2){dom.output.textContent='請選起點與終點';return;}
+  
+  // 修改：從新的 chosenList 獲取途經點
+  const waypoints = Array.from(dom.chosenList.querySelectorAll('li')).map(li => li.dataset.nodeName);
+  const seq=[dom.startSel.value, ...waypoints, dom.endSel.value];
+  
+  if(seq.length<2){dom.output.innerHTML='<p>請選起點與終點，並可選擇途經點。</p>';return;}
 
   let full=[];for(let i=0;i<seq.length-1;i++){
     const p=path(seq[i],seq[i+1],data.edges,f);
-    if(!p){dom.output.textContent=`${seq[i]}→${seq[i+1]} 無路徑`;return;}
+    if(!p){dom.output.innerHTML=`<p style="color:red;">${seq[i]} → ${seq[i+1]} 無路徑，請檢查節點順序。</p>`;return;}
     if(i)p.shift(); full=full.concat(p);
   }
   const seg=full.length-1;
@@ -468,6 +547,10 @@ function calc(data){
   if(dayStarts.length===0) dayStarts.push('06:00');
   for(let i=0;i<seg;i++){
     const a=full[i],b=full[i+1],e=data.edges.find(x=>(x.from===a&&x.to===b)||(x.from===b&&x.to===a));
+    if (!e) {
+        console.error(`找不到路段資料: ${a}↔${b}`);
+        continue;
+    }
     const walk=Math.round(((e.from===a)?e.up:e.down)*f); now+=walk;
     legs.push({from:a,to:b,walk,arr:now,rest:rests[i],nite:nights[i],idx:i});
     dWalk+=walk; dRest+=rests[i]; now+=rests[i];
@@ -475,30 +558,29 @@ function calc(data){
       days.push({walk:dWalk,rest:dRest,legs});
       legs=[];dWalk=dRest=0;dayIdx++;
       if(!dayStarts[dayIdx]) dayStarts[dayIdx]='06:00';
-      now+=1440;   // 進到隔天
-      const [hh,mm]=dayStarts[dayIdx].split(':').map(Number);
+      const [hh,mm]=(dayStarts[dayIdx] || '06:00').split(':').map(Number);
       now=Math.floor(now/1440)*1440+hh*60+mm;
     }
   }
 
   let html='';
   days.forEach((d,di)=>{
-    const st=dayStarts[di];
+    const st=dayStarts[di] || '06:00';
     html+=`<details data-day="${di}"${opened.has(di)?' open':''}>
       <summary>Day ${di+1}　<input type="time" class="dayStart" data-day="${di}" value="${st}"> — 行走 ${d.walk} 分・休息 ${d.rest} 分</summary>
       <table class='dayTbl'><thead><tr><th>#</th><th>區段</th><th>行走(分)</th><th>抵達</th><th>休息(分)</th><th>過夜</th></tr></thead><tbody>`;
-    d.legs.forEach((l,i)=>{html+=`<tr${l.nite?' class="nightStop"':''}><td>${i+1}</td><td>${l.from} → ${l.to}</td><td>${l.walk}</td><td><span class='arrival'>${fmt(l.arr)}</span></td><td>${restSel(l.idx,l.rest)}</td><td>${nightChk(l.idx,l.nite)}</td></tr>`;});
+    d.legs.forEach((l,i)=>{html+=`<tr${l.nite?' class="nightStop"':''}><td>${l.idx+1}</td><td>${l.from} → ${l.to}</td><td>${l.walk}</td><td><span class='arrival'>${fmt(l.arr)}</span></td><td>${restSel(l.idx,l.rest)}</td><td>${nightChk(l.idx,l.nite)}</td></tr>`;});
     html+='</tbody></table></details>';
   });
   dom.output.innerHTML=html;
-  window.latestDays=days;    // 供匯出 TXT / PDF
+  window.latestDays=days;
 }
 
-/* ---------- export TXT ---------- */
+/* ---------- export TXT (原樣) ---------- */
 function buildTxt(days){
   const pad=n=>String(n).padStart(2,'0');
   let txt=''; days.forEach((d,di)=>{txt+=`──────────  Day ${di+1}  ──────────\r\n行走 ${d.walk} 分\t休息 ${d.rest} 分\r\n#\t區段\t\t\t走\t休\t抵達\r\n`;
-    d.legs.forEach((l,i)=>{const rest=l.rest?l.rest:'';const over=l.nite?'←過夜':'';txt+=`${i+1}\t${l.from} → ${l.to}\t${l.walk}\t${rest}\t${pad(Math.floor(l.arr/60)%24)}:${pad(l.arr%60)}\t${over}\r\n`;});txt+='\r\n';});
+    d.legs.forEach((l,i)=>{const rest=l.rest?l.rest:'';const over=l.nite?'←過夜':'';txt+=`${l.idx+1}\t${l.from} → ${l.to}\t${l.walk}\t${rest}\t${pad(Math.floor(l.arr/60)%24)}:${pad(l.arr%60)}\t${over}\r\n`;});txt+='\r\n';});
   return txt;
 }
 dom.exportTxt.onclick=()=>{if(!window.latestDays){alert('請先計算');return;}
@@ -508,7 +590,7 @@ dom.exportTxt.onclick=()=>{if(!window.latestDays){alert('請先計算');return;}
   document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 };
 
-/* ---------- export PDF ---------- */
+/* ---------- export PDF (原樣) ---------- */
 dom.exportPdf.onclick=()=>{if(!window.latestDays){alert('請先計算');return;}
   const opt={
     margin:10,
@@ -516,39 +598,35 @@ dom.exportPdf.onclick=()=>{if(!window.latestDays){alert('請先計算');return;}
     html2canvas:{scale:2},
     jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
   };
+  const content = dom.results-panel;
   html2pdf().from(dom.output).set(opt).save();
 };
 dom.startTime.addEventListener('change', () => {
   const d = cache[dom.routeSel.value];
-  if(d) calc(d);              // 立即重算並更新 Day1 summary
+  if(d) calc(d);
 });
-/* ---------- update on change ---------- */
+/* ---------- update on change (原樣) ---------- */
 dom.output.addEventListener('change', e=>{
   const t = e.target;
-
   if (t.classList.contains('restSel')) {
     rests[+t.dataset.idx] = +t.value || 0;
-
   } else if (t.classList.contains('overnight')) {
     nights[+t.dataset.idx] = t.checked;
-
   } else if (t.classList.contains('dayStart')) {
     const idx = +t.dataset.day;
     dayStarts[idx] = t.value || '06:00';
     if (idx === 0) dom.startTime.value = t.value || '06:00';
   }
-
-  /* ← 不論哪種欄位，都在這裡統一重算 */
   const d = cache[dom.routeSel.value];
   if (d) calc(d);
 });
 dom.runBtn.onclick=()=>{const d=cache[dom.routeSel.value];if(d) calc(d);};
 
-/* ---------- first load ---------- */
+/* ---------- first load (原樣) ---------- */
 document.addEventListener('DOMContentLoaded',async()=>{
   dom.routeSel.selectedIndex=0;
   dom.routeImg.src=ROUTE_META[dom.routeSel.value].img;
-  const d=await loadRoute(dom.routeSel.value); if(d) renderNodeSelects(d.nodes);
+  const d=await loadRoute(dom.routeSel.value); if(d) renderNodeSelects(d);
 });
 })();
 </script>
