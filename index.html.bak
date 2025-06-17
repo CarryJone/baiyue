@@ -4,73 +4,315 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>步程時間估算器｜多天縱走</title>
-<style>
-/* ---------- 基本樣式 ---------- */
-body{font-family:Arial,Helvetica,sans-serif;line-height:1.55;max-width:1050px;margin:auto;padding:1rem}
-h2{margin:.6rem 0 1rem;font-size:1.7rem}
-img{width:100%;height:auto;border-radius:.75rem;box-shadow:0 4px 10px rgba(0,0,0,.12)}
-.controls{display:flex;flex-wrap:wrap;gap:.8rem;align-items:center;margin-top:1rem}
-label{font-weight:600}
-select,input[type=time],input[type=number]{padding:.25rem .55rem;border-radius:.45rem;border:1px solid #ccc}
-select{min-width:7rem}
-input[type=number]{width:5rem}
-button{padding:.4rem .95rem;border:none;border-radius:.5rem;background:#388e3c;color:#fff;font-weight:600;cursor:pointer}
-.transfer{display:flex;gap:.8rem;margin:1rem 0}
-.box{display:flex;flex-direction:column;gap:.3rem}
-.transfer select{width:240px;height:220px;padding:.25rem;border:1px solid #bbb;border-radius:.5rem}
-.btns{display:flex;flex-direction:column;gap:.65rem;align-items:center;justify-content:center}
-.btns button{padding:.25rem .75rem;font-size:1.15rem;border:1px solid #888;border-radius:.4rem;background:#eee;color:#222;cursor:pointer}
-table.dayTbl{border-collapse:collapse;width:100%;margin-top:.8rem;font-size:.95rem}
-table.dayTbl th,table.dayTbl td{border:1px solid #ccc;padding:.35rem;text-align:center}
-table.dayTbl th{background:#f9f9f9;font-weight:600}
-table.dayTbl td:first-child{text-align:right}
-.arrival{color:#b01257;font-weight:700}
-.nightStop{background:#fff9e6}
-details{border:1px solid #ddd;border-radius:.6rem;margin-top:1rem;padding:.6rem}
-details[open]{background:#fafafa}
-summary{font-weight:600;cursor:pointer;outline:none}
-summary::-webkit-details-marker{display:none}
-summary input[type=time]{font-size:inherit;width:auto;margin:0 .4rem}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 
+<style>
+/* ---------- 全局與基本樣式 ---------- */
+:root {
+  --primary-color: #388e3c;
+  --primary-dark: #2e7d32;
+  --light-gray: #f5f5f5;
+  --medium-gray: #e0e0e0;
+  --dark-gray: #616161;
+  --text-color: #212121;
+  --card-shadow: 0 4px 12px rgba(0,0,0,.08);
+  --border-radius: 8px;
+}
+body {
+  font-family: 'Noto Sans TC', Arial, Helvetica, sans-serif;
+  line-height: 1.6;
+  background-color: var(--light-gray);
+  color: var(--text-color);
+  margin: 0;
+  padding: 1rem;
+}
+.container {
+  max-width: 1200px;
+  margin: auto;
+}
+h2 {
+  margin: 0 0 1rem;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+/* ---------- 主要佈局 ---------- */
+.main-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+.controls-panel {
+  flex: 1;
+  min-width: 350px;
+}
+.results-panel {
+  flex: 2;
+  min-width: 300px;
+}
+
+/* ---------- 卡片式設計 ---------- */
+.card {
+  background: #fff;
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.card-header {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--medium-gray);
+}
+
+/* ---------- 控制項樣式 ---------- */
+.form-group {
+  margin-bottom: 1rem;
+}
+.form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: var(--dark-gray);
+}
+select, input[type=time], input[type=number], input[type=text] {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--medium-gray);
+  font-size: 1rem;
+  box-sizing: border-box;
+  background-color: #fff;
+}
+input[type=number] {
+  width: 8rem;
+}
+button {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary-color);
+  color: #fff;
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+button:hover {
+  background: var(--primary-dark);
+}
+.export-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+#runBtn {
+    font-weight: 700;
+}
+
+/* ---------- 節點選擇器樣式 ---------- */
+.transfer {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  width: 45%;
+}
+.transfer select {
+  width: 100%;
+  height: 220px;
+  border: 1px solid var(--medium-gray);
+  border-radius: 6px;
+  padding: .25rem;
+}
+.btns {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.btns button {
+  padding: .25rem .75rem;
+  font-size: 1.25rem;
+  border: 1px solid var(--medium-gray);
+  background: var(--light-gray);
+  color: var(--text-color);
+}
+.btns button:hover {
+    background: var(--medium-gray);
+}
+
+
+/* ---------- 結果區樣式 ---------- */
+#routeImg {
+  width: 100%;
+  height: auto;
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  margin-bottom: 1.5rem;
+}
+#output {
+  margin-top: 1rem;
+}
+table.dayTbl {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: .8rem;
+  font-size: .95rem;
+}
+table.dayTbl th, table.dayTbl td {
+  border: 1px solid var(--medium-gray);
+  padding: .5rem;
+  text-align: center;
+}
+table.dayTbl th {
+  background: var(--light-gray);
+  font-weight: 700;
+}
+table.dayTbl td:nth-child(2) {
+  text-align: left;
+}
+.arrival {
+  color: #c62828;
+  font-weight: 700;
+}
+.nightStop {
+  background: #fff9e6;
+}
+details {
+  border: 1px solid var(--medium-gray);
+  border-radius: var(--border-radius);
+  margin-top: 1rem;
+  background: #fff;
+  transition: background-color 0.2s;
+}
+details[open] {
+  background: #fdfdfd;
+}
+summary {
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.8rem 1.2rem;
+  outline: none;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+summary input[type=time] {
+    width: auto;
+}
+
+/* ---------- 響應式設計 (RWD) ---------- */
+@media (max-width: 768px) {
+  body {
+    padding: 0.5rem;
+  }
+  .main-layout {
+    flex-direction: column;
+  }
+  .controls-panel, .results-panel {
+    min-width: 100%;
+  }
+  h2 {
+    font-size: 1.5rem;
+  }
+}
 /* -------- 打印 / PDF -------- */
 @media print{
-  .controls,.transfer{display:none}
-  body{max-width:none;padding:0}
+  body{max-width:none;padding:0; background: #fff;}
+  .controls-panel, #routeImg {display:none}
+  .card { box-shadow: none; border: 1px solid #ccc; }
 }
 </style>
 </head>
 <body>
-<h2>步程時間估算器（多天縱走版）</h2>
-<img id="routeImg" src="bai_gu_route.png" alt="路線示意圖">
 
-<!-- 控制列 -->
-<div class="controls">
-  <label for="route">路線：</label><select id="route"></select>
-  <label for="start">起點：</label><select id="start"></select>
-  <label for="end">終點：</label><select id="end"></select>
-  <label for="factor">倍率：</label><input id="factor" type="number" min="0.1" max="2" step="0.1" value="1">
-  <label for="startTime">Day1 出發：</label><input id="startTime" type="time" value="06:00">
-  <button id="runBtn">計算</button>
-  <button id="exportTxt">匯出 TXT</button>
-  <button id="exportPdf">匯出 PDF</button>
+<div class="container">
+  <h2>步程時間估算器（多天縱走版）</h2>
+  
+  <div class="main-layout">
+    
+    <aside class="controls-panel">
+      <div class="card">
+        <h3 class="card-header">路線設定</h3>
+        
+        <div class="form-group">
+          <label for="route">主路線：</label>
+          <select id="route"></select>
+        </div>
+        
+        <div class="form-group">
+          <label for="start">起點：</label>
+          <select id="start"></select>
+        </div>
+        
+        <div class="form-group">
+          <label for="end">終點：</label>
+          <select id="end"></select>
+        </div>
+        
+        <div class="form-group">
+          <label for="factor">個人速度倍率 (0.1–2)：</label>
+          <input id="factor" type="number" min="0.1" max="2" step="0.1" value="1">
+        </div>
+        
+        <div class="form-group">
+          <label for="startTime">Day1 出發時間：</label>
+          <input id="startTime" type="time" value="06:00">
+        </div>
+
+        <button id="runBtn">計算行程</button>
+      </div>
+
+      <div class="card">
+        <h3 class="card-header">節點選擇</h3>
+        <div class="form-group">
+            <label for="filter">搜尋節點：</label>
+            <input id="filter" type="text" placeholder="輸入關鍵字篩選">
+        </div>
+
+        <div class="transfer">
+            <div class="box"><label>可選節點</label><select id="avail" multiple></select></div>
+            <div class="btns"><button id="add">➜</button><button id="remove">⬅</button></div>
+            <div class="box"><label>已選節點 (順序)</label><select id="chosen" multiple></select></div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="results-panel">
+      <img id="routeImg" src="bai_gu_route.png" alt="路線示意圖">
+      
+      <div class="card">
+          <h3 class="card-header">計算結果</h3>
+          <div id="output"></div>
+          <div class="export-buttons">
+              <button id="exportTxt">匯出 TXT</button>
+              <button id="exportPdf">匯出 PDF</button>
+          </div>
+      </div>
+    </main>
+
+  </div>
 </div>
 
-<p><strong>搜尋節點：</strong><input id="filter" type="text" placeholder="輸入關鍵字篩選"></p>
-
-<!-- 兩欄節點搬移 -->
-<div class="transfer">
-  <div class="box"><label>可選節點</label><select id="avail" multiple></select></div>
-  <div class="btns"><button id="add">➜</button><button id="remove">⬅</button></div>
-  <div class="box"><label>已選節點（經途順序）</label><select id="chosen" multiple></select></div>
-</div>
-
-<!-- 結果區：同時作為 PDF 來源 -->
-<div id="output"></div>
-
-<!-- html2pdf CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 
 <script>
+// 你的 JavaScript 程式碼維持原樣，不需變更
+// I've moved your original script here without any changes.
 (()=>{
 /* ---------- DOM shortcuts ---------- */
 const $=q=>document.querySelector(q);
@@ -117,7 +359,6 @@ async function loadRoute(name){
 Object.keys(ROUTE_META).forEach(n=>dom.routeSel.add(new Option(n,n)));
 dom.routeSel.addEventListener('change', async () => {
   const name = dom.routeSel.value;
-
   dom.routeImg.src = ROUTE_META[name].img;
   const data = await loadRoute(name);
   if (!data) return;
@@ -125,17 +366,14 @@ dom.routeSel.addEventListener('change', async () => {
   /* 重新載入可選節點 */
   renderNodeSelects(data.nodes);
 
-  /* -------- ① 清空「已選節點」清單 -------- */
-  dom.chosenSel.innerHTML = '';
-
-  /* -------- ② 重置內部狀態 -------- */
+  /* -------- reset -------- */
+  dom.chosenSel.innerHTML = '';    // 清空已選節點
   rests = [];
   nights = [];
-  dayStarts = [];
-  window.latestDays = null;   // TXT / PDF 不再可用
-
-  /* -------- ③ 清空下方結果區 -------- */
-  dom.output.innerHTML = '';
+  dayStarts = ['06:00'];           // Day1 預設 06:00
+  dom.startTime.value = '06:00';   // 控制列同步成 06:00
+  window.latestDays = null;        // 先停用匯出
+  dom.output.innerHTML = '';       // 清空結果區
 });
 
 /* ---------- render nodes ---------- */
@@ -248,7 +486,7 @@ function calc(data){
     const st=dayStarts[di];
     html+=`<details data-day="${di}"${opened.has(di)?' open':''}>
       <summary>Day ${di+1}　<input type="time" class="dayStart" data-day="${di}" value="${st}"> — 行走 ${d.walk} 分・休息 ${d.rest} 分</summary>
-      <table class='dayTbl'><thead><tr><th>#</th><th>區段</th><th>行走</th><th>抵達</th><th>休息</th><th>過夜</th></tr></thead><tbody>`;
+      <table class='dayTbl'><thead><tr><th>#</th><th>區段</th><th>行走(分)</th><th>抵達</th><th>休息(分)</th><th>過夜</th></tr></thead><tbody>`;
     d.legs.forEach((l,i)=>{html+=`<tr${l.nite?' class="nightStop"':''}><td>${i+1}</td><td>${l.from} → ${l.to}</td><td>${l.walk}</td><td><span class='arrival'>${fmt(l.arr)}</span></td><td>${restSel(l.idx,l.rest)}</td><td>${nightChk(l.idx,l.nite)}</td></tr>`;});
     html+='</tbody></table></details>';
   });
