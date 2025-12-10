@@ -666,23 +666,19 @@
       function buildTxt(days) {
         let t = '';
         days.forEach((d, di) => {
-          t += `D${di + 1}：${d.legs[0].from}`;
-          let currentDayMin = 0;
-          // Find the start time of the day in minutes
+          // Calculate Day Start Time
           const startStr = dayStarts[di] || '06:00';
           const [sh, sm] = startStr.split(':').map(Number);
-          currentDayMin = sh * 60 + sm;
+          const currentDayMin = sh * 60 + sm;
+
+          t += `D${di + 1}：${d.legs[0].from}(${fmtTimeOnly(currentDayMin)})`;
 
           d.legs.forEach((l) => {
-            const startTime = fmtTimeOnly(currentDayMin);
-            const entTime = fmtTimeOnly(l.arr);
-            t += `→(${startTime}-${entTime})→${l.to}`;
+            const arrTime = fmtTimeOnly(l.arr);
+            t += `→${l.to}(${arrTime})`;
             if (l.nite) t += `(宿)`;
-
-            // Prepare start time for next leg (arrival + rest)
-            currentDayMin = l.arr + l.rest;
           });
-          t += `。\n\n`;
+          t += `\n\n`;
         });
         return t;
       }
